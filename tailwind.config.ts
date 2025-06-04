@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -25,12 +26,60 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					DEFAULT: '#246BC2',
+					50: '#E8F2FF',
+					100: '#D0E4FF',
+					200: '#A1C9FF',
+					300: '#72AEFF',
+					400: '#4388E8',
+					500: '#246BC2',
+					600: '#1D5BA3',
+					700: '#164A84',
+					800: '#0F3A65',
+					900: '#002147',
+					foreground: '#FFFFFF'
 				},
 				secondary: {
-					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
+					DEFAULT: '#FA905',
+					50: '#FFF4E6',
+					100: '#FFE8CC',
+					200: '#FFD199',
+					300: '#FFBA66',
+					400: '#FFA333',
+					500: '#FA905',
+					600: '#E6950A',
+					700: '#B3740B',
+					800: '#80540C',
+					900: '#4D330D',
+					foreground: '#FFFFFF'
+				},
+				accent: {
+					DEFAULT: '#DDE788',
+					50: '#F8FBE6',
+					100: '#F1F7CC',
+					200: '#E8F399',
+					300: '#DFE966',
+					400: '#E3ED77',
+					500: '#DDE788',
+					600: '#C5CF6F',
+					700: '#AAB85C',
+					800: '#8E9F49',
+					900: '#728636',
+					foreground: '#1F2937'
+				},
+				neutral: {
+					DEFAULT: '#10F13',
+					50: '#F8F9FA',
+					100: '#F1F3F4',
+					200: '#E8EAED',
+					300: '#DADCE0',
+					400: '#BDC1C6',
+					500: '#9AA0A6',
+					600: '#80868B',
+					700: '#5F6368',
+					800: '#3C4043',
+					900: '#10F13',
+					950: '#01123'
 				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
@@ -39,10 +88,6 @@ export default {
 				muted: {
 					DEFAULT: 'hsl(var(--muted))',
 					foreground: 'hsl(var(--muted-foreground))'
-				},
-				accent: {
-					DEFAULT: 'hsl(var(--accent))',
-					foreground: 'hsl(var(--accent-foreground))'
 				},
 				popover: {
 					DEFAULT: 'hsl(var(--popover))',
@@ -84,11 +129,33 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'fade-in': {
+					'0%': {
+						opacity: '0',
+						transform: 'translateY(10px)'
+					},
+					'100%': {
+						opacity: '1',
+						transform: 'translateY(0)'
+					}
+				},
+				'scale-in': {
+					'0%': {
+						transform: 'scale(0.95)',
+						opacity: '0'
+					},
+					'100%': {
+						transform: 'scale(1)',
+						opacity: '1'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'scale-in': 'scale-in 0.2s ease-out'
 			}
 		}
 	},

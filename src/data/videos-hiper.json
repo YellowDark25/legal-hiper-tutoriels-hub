@@ -1,0 +1,57 @@
+
+[
+  {
+    "id": "hiper1",
+    "titulo": "Instalação do Sistema Hiper",
+    "descricao": "Instalação completa e configuração inicial do sistema Hiper",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=225&fit=crop",
+    "categoria": "Instalação",
+    "duracao": "20:15"
+  },
+  {
+    "id": "hiper2",
+    "titulo": "Gestão de Estoque",
+    "descricao": "Como gerenciar estoque, entradas e saídas no sistema Hiper",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400&h=225&fit=crop",
+    "categoria": "Estoque",
+    "duracao": "25:40"
+  },
+  {
+    "id": "hiper3",
+    "titulo": "Módulo Financeiro",
+    "descricao": "Controle de contas a pagar, receber e fluxo de caixa no Hiper",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=225&fit=crop",
+    "categoria": "Financeiro",
+    "duracao": "30:25"
+  },
+  {
+    "id": "hiper4",
+    "titulo": "Cadastro de Clientes",
+    "descricao": "Gerenciamento completo do cadastro de clientes e fornecedores",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=225&fit=crop",
+    "categoria": "Cadastros",
+    "duracao": "17:30"
+  },
+  {
+    "id": "hiper5",
+    "titulo": "Relatórios Gerenciais",
+    "descricao": "Geração de relatórios gerenciais e dashboards no sistema Hiper",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=225&fit=crop",
+    "categoria": "Relatórios",
+    "duracao": "28:10"
+  },
+  {
+    "id": "hiper6",
+    "titulo": "Integração com E-commerce",
+    "descricao": "Como integrar o sistema Hiper com plataformas de e-commerce",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?w=400&h=225&fit=crop",
+    "categoria": "Integrações",
+    "duracao": "35:45"
+  }
+]

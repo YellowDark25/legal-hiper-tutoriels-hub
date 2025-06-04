@@ -1,0 +1,57 @@
+
+[
+  {
+    "id": "pdv1",
+    "titulo": "Instalação do PDVLegal",
+    "descricao": "Passo a passo completo para instalar o sistema PDVLegal em seu estabelecimento",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=225&fit=crop",
+    "categoria": "Instalação",
+    "duracao": "15:30"
+  },
+  {
+    "id": "pdv2",
+    "titulo": "Configurações Iniciais",
+    "descricao": "Como configurar parâmetros básicos do PDVLegal após a instalação",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=400&h=225&fit=crop",
+    "categoria": "Configuração",
+    "duracao": "12:45"
+  },
+  {
+    "id": "pdv3",
+    "titulo": "Cadastro de Produtos",
+    "descricao": "Aprenda a cadastrar produtos com códigos de barras e preços no PDVLegal",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=400&h=225&fit=crop",
+    "categoria": "Cadastros",
+    "duracao": "18:20"
+  },
+  {
+    "id": "pdv4",
+    "titulo": "Realizando Vendas",
+    "descricao": "Fluxo completo de vendas: leitura de códigos, aplicação de descontos e finalização",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=225&fit=crop",
+    "categoria": "Operações",
+    "duracao": "22:10"
+  },
+  {
+    "id": "pdv5",
+    "titulo": "Relatórios Financeiros",
+    "descricao": "Como gerar e interpretar relatórios de vendas e financeiros no PDVLegal",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=225&fit=crop",
+    "categoria": "Relatórios",
+    "duracao": "16:55"
+  },
+  {
+    "id": "pdv6",
+    "titulo": "Backup e Segurança",
+    "descricao": "Configuração de backups automáticos e medidas de segurança",
+    "url": "https://www.youtube.com/embed/dQw4w9WgXcQ",
+    "miniatura": "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=225&fit=crop",
+    "categoria": "Manutenção",
+    "duracao": "14:30"
+  }
+]
