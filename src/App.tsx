@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import PDVLegal from "./pages/PDVLegal";
 import Hiper from "./pages/Hiper";
 import Contato from "./pages/Contato";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
           <Route path="/pdvlegal" element={<PDVLegal />} />
           <Route path="/hiper" element={<Hiper />} />
           <Route path="/contato" element={<Contato />} />
+          <Route path="/admin" element={<Admin />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

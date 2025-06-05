@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      categorias: {
+        Row: {
+          cor: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          cor?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contas_pagar: {
         Row: {
           cliente: string | null
@@ -276,6 +303,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tags: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       Users: {
         Row: {
           agente: string | null
@@ -302,6 +347,92 @@ export type Database = {
           timeoff?: string | null
         }
         Relationships: []
+      }
+      video_tags: {
+        Row: {
+          id: string
+          tag_id: string | null
+          video_id: string | null
+        }
+        Insert: {
+          id?: string
+          tag_id?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          id?: string
+          tag_id?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_tags_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos: {
+        Row: {
+          categoria_id: string | null
+          created_at: string
+          descricao: string | null
+          duracao: string | null
+          id: string
+          miniatura: string | null
+          sistema: string
+          status: string
+          titulo: string
+          updated_at: string
+          url: string
+          visualizacoes: number | null
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          duracao?: string | null
+          id?: string
+          miniatura?: string | null
+          sistema: string
+          status?: string
+          titulo: string
+          updated_at?: string
+          url: string
+          visualizacoes?: number | null
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          duracao?: string | null
+          id?: string
+          miniatura?: string | null
+          sistema?: string
+          status?: string
+          titulo?: string
+          updated_at?: string
+          url?: string
+          visualizacoes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
