@@ -1,13 +1,21 @@
 
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { UserIcon, LogOutIcon } from 'lucide-react';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
@@ -20,7 +28,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
+          <nav className="hidden md:flex space-x-8 items-center">
             <Link
               to="/"
               className={`text-white hover:text-accent-300 transition-colors px-3 py-2 rounded-md text-sm font-medium ${
@@ -53,6 +61,34 @@ const Header = () => {
             >
               Contato
             </Link>
+
+            {/* User Authentication */}
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/profile"
+                  className="text-white hover:text-accent-300 transition-colors px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1"
+                >
+                  <UserIcon className="w-4 h-4" />
+                  Perfil
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="text-white hover:text-accent-300 hover:bg-primary-700"
+                >
+                  <LogOutIcon className="w-4 h-4 mr-1" />
+                  Sair
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button variant="secondary" size="sm">
+                  Entrar
+                </Button>
+              </Link>
+            )}
           </nav>
 
           {/* Mobile menu button */}
@@ -110,6 +146,36 @@ const Header = () => {
               >
                 Contato
               </Link>
+
+              {/* Mobile User Authentication */}
+              {user ? (
+                <>
+                  <Link
+                    to="/profile"
+                    className="text-white hover:text-accent-300 block px-3 py-2 rounded-md text-base font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Perfil
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMenuOpen(false);
+                    }}
+                    className="text-white hover:text-accent-300 block px-3 py-2 rounded-md text-base font-medium w-full text-left"
+                  >
+                    Sair
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="text-white hover:text-accent-300 block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Entrar
+                </Link>
+              )}
             </div>
           </div>
         )}

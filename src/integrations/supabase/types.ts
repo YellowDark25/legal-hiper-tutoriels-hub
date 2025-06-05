@@ -219,6 +219,74 @@ export type Database = {
         }
         Relationships: []
       }
+      playlist_videos: {
+        Row: {
+          added_at: string | null
+          id: string
+          playlist_id: string
+          video_id: string
+          video_miniatura: string | null
+          video_titulo: string
+          video_url: string
+        }
+        Insert: {
+          added_at?: string | null
+          id?: string
+          playlist_id: string
+          video_id: string
+          video_miniatura?: string | null
+          video_titulo: string
+          video_url: string
+        }
+        Update: {
+          added_at?: string | null
+          id?: string
+          playlist_id?: string
+          video_id?: string
+          video_miniatura?: string | null
+          video_titulo?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playlist_videos_playlist_id_fkey"
+            columns: ["playlist_id"]
+            isOneToOne: false
+            referencedRelation: "playlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playlists: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          is_public: boolean | null
+          nome: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          is_public?: boolean | null
+          nome: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          is_public?: boolean | null
+          nome?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       posts_blog: {
         Row: {
           categoria: string
@@ -255,6 +323,36 @@ export type Database = {
           slug?: string
           status?: string
           titulo?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+          username?: string | null
         }
         Relationships: []
       }
@@ -345,6 +443,39 @@ export type Database = {
           nome?: string | null
           telefone?: string | null
           timeoff?: string | null
+        }
+        Relationships: []
+      }
+      video_history: {
+        Row: {
+          completed: boolean | null
+          id: string
+          user_id: string
+          video_categoria: string | null
+          video_id: string
+          video_titulo: string
+          watch_duration: number | null
+          watched_at: string | null
+        }
+        Insert: {
+          completed?: boolean | null
+          id?: string
+          user_id: string
+          video_categoria?: string | null
+          video_id: string
+          video_titulo: string
+          watch_duration?: number | null
+          watched_at?: string | null
+        }
+        Update: {
+          completed?: boolean | null
+          id?: string
+          user_id?: string
+          video_categoria?: string | null
+          video_id?: string
+          video_titulo?: string
+          watch_duration?: number | null
+          watched_at?: string | null
         }
         Relationships: []
       }
