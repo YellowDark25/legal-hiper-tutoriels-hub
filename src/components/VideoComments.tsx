@@ -44,7 +44,7 @@ const VideoComments: React.FC<VideoCommentsProps> = ({ videoId }) => {
         .from('comentarios')
         .select(`
           *,
-          profiles:user_id (
+          profiles (
             full_name,
             username
           )
