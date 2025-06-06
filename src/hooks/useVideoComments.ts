@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -26,7 +27,7 @@ export const useVideoComments = (videoId: string) => {
         .from('comentarios')
         .select(`
           *,
-          profiles:user_id (
+          profiles!comentarios_user_id_fkey (
             full_name,
             username
           )
