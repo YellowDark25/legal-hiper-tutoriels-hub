@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { UploadIcon } from 'lucide-react';
+import { UploadIcon, VideoIcon, ImageIcon } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Category {
   id: string;
@@ -23,16 +24,18 @@ interface Tag {
 
 const VideoUpload = () => {
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
-    url: '',
-    miniatura: '',
     categoria_id: '',
     duracao: '',
     sistema: '',
@@ -87,15 +90,73 @@ const VideoUpload = () => {
     );
   };
 
+  const uploadFile = async (file: File, bucket: string, path: string) => {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, {
+        upsert: true,
+      });
+
+    if (error) throw error;
+    return data;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "Erro",
+        description: "Você precisa estar logado para fazer upload de vídeos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!videoFile) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione um arquivo de vídeo",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
+    setUploadProgress(0);
 
     try {
-      // Inserir vídeo
-      const { data: videoData, error: videoError } = await supabase
+      // Upload do vídeo
+      const videoFileName = `${user.id}/${Date.now()}_${videoFile.name}`;
+      const videoData = await uploadFile(videoFile, 'videos', videoFileName);
+      
+      setUploadProgress(50);
+
+      // Upload da miniatura (se fornecida)
+      let thumbnailPath = null;
+      if (thumbnailFile) {
+        const thumbnailFileName = `${user.id}/${Date.now()}_${thumbnailFile.name}`;
+        await uploadFile(thumbnailFile, 'thumbnails', thumbnailFileName);
+        thumbnailPath = thumbnailFileName;
+      }
+
+      setUploadProgress(75);
+
+      // Obter URL pública do vídeo
+      const { data: { publicUrl } } = supabase.storage
         .from('videos')
-        .insert([formData])
+        .getPublicUrl(videoData.path);
+
+      // Inserir vídeo no banco
+      const { data: videoRecord, error: videoError } = await supabase
+        .from('videos')
+        .insert([{
+          ...formData,
+          url: publicUrl,
+          video_path: videoData.path,
+          thumbnail_path: thumbnailPath,
+          created_by: user.id
+        }])
         .select()
         .single();
 
@@ -104,7 +165,7 @@ const VideoUpload = () => {
       // Inserir tags do vídeo
       if (selectedTags.length > 0) {
         const videoTagsData = selectedTags.map(tagId => ({
-          video_id: videoData.id,
+          video_id: videoRecord.id,
           tag_id: tagId
         }));
 
@@ -115,6 +176,8 @@ const VideoUpload = () => {
         if (tagsError) throw tagsError;
       }
 
+      setUploadProgress(100);
+
       toast({
         title: "Sucesso",
         description: "Vídeo criado com sucesso",
@@ -124,14 +187,15 @@ const VideoUpload = () => {
       setFormData({
         titulo: '',
         descricao: '',
-        url: '',
-        miniatura: '',
         categoria_id: '',
         duracao: '',
         sistema: '',
         status: 'rascunho'
       });
       setSelectedTags([]);
+      setVideoFile(null);
+      setThumbnailFile(null);
+      setUploadProgress(0);
 
     } catch (error) {
       console.error('Erro ao criar vídeo:', error);
@@ -168,26 +232,40 @@ const VideoUpload = () => {
               </div>
 
               <div>
-                <Label htmlFor="url">URL do Vídeo *</Label>
-                <Input
-                  id="url"
-                  type="url"
-                  value={formData.url}
-                  onChange={(e) => handleInputChange('url', e.target.value)}
-                  placeholder="https://youtube.com/embed/..."
-                  required
-                />
+                <Label htmlFor="video-file">Arquivo de Vídeo *</Label>
+                <div className="flex items-center gap-2">
+                  <VideoIcon className="w-5 h-5 text-gray-400" />
+                  <Input
+                    id="video-file"
+                    type="file"
+                    accept="video/mp4,video/avi,video/mov,video/wmv,video/webm"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                    required
+                  />
+                </div>
+                {videoFile && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Arquivo selecionado: {videoFile.name}
+                  </p>
+                )}
               </div>
 
               <div>
-                <Label htmlFor="miniatura">URL da Miniatura</Label>
-                <Input
-                  id="miniatura"
-                  type="url"
-                  value={formData.miniatura}
-                  onChange={(e) => handleInputChange('miniatura', e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <Label htmlFor="thumbnail-file">Miniatura (Opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-gray-400" />
+                  <Input
+                    id="thumbnail-file"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                  />
+                </div>
+                {thumbnailFile && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Arquivo selecionado: {thumbnailFile.name}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -284,8 +362,18 @@ const VideoUpload = () => {
             />
           </div>
 
+          {loading && uploadProgress > 0 && (
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+              <p className="text-sm text-center mt-2">Upload: {uploadProgress}%</p>
+            </div>
+          )}
+
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Criando...' : 'Criar Vídeo'}
+            {loading ? 'Fazendo Upload...' : 'Criar Vídeo'}
           </Button>
         </form>
       </CardContent>

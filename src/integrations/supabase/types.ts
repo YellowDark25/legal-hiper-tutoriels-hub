@@ -36,6 +36,51 @@ export type Database = {
         }
         Relationships: []
       }
+      comentarios: {
+        Row: {
+          conteudo: string
+          created_at: string | null
+          id: string
+          parent_id: string | null
+          updated_at: string | null
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string | null
+          id?: string
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string | null
+          id?: string
+          parent_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comentarios_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comentarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comentarios_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contas_pagar: {
         Row: {
           cliente: string | null
@@ -218,6 +263,47 @@ export type Database = {
           session_id?: string
         }
         Relationships: []
+      }
+      notificacoes: {
+        Row: {
+          created_at: string | null
+          id: string
+          lida: boolean | null
+          mensagem: string
+          tipo: string
+          titulo: string
+          user_id: string
+          video_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lida?: boolean | null
+          mensagem: string
+          tipo: string
+          titulo: string
+          user_id: string
+          video_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lida?: boolean | null
+          mensagem?: string
+          tipo?: string
+          titulo?: string
+          user_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       playlist_videos: {
         Row: {
@@ -516,43 +602,52 @@ export type Database = {
         Row: {
           categoria_id: string | null
           created_at: string
+          created_by: string | null
           descricao: string | null
           duracao: string | null
           id: string
           miniatura: string | null
           sistema: string
           status: string
+          thumbnail_path: string | null
           titulo: string
           updated_at: string
           url: string
+          video_path: string | null
           visualizacoes: number | null
         }
         Insert: {
           categoria_id?: string | null
           created_at?: string
+          created_by?: string | null
           descricao?: string | null
           duracao?: string | null
           id?: string
           miniatura?: string | null
           sistema: string
           status?: string
+          thumbnail_path?: string | null
           titulo: string
           updated_at?: string
           url: string
+          video_path?: string | null
           visualizacoes?: number | null
         }
         Update: {
           categoria_id?: string | null
           created_at?: string
+          created_by?: string | null
           descricao?: string | null
           duracao?: string | null
           id?: string
           miniatura?: string | null
           sistema?: string
           status?: string
+          thumbnail_path?: string | null
           titulo?: string
           updated_at?: string
           url?: string
+          video_path?: string | null
           visualizacoes?: number | null
         }
         Relationships: [
