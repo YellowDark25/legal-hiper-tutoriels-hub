@@ -27,7 +27,7 @@ export const useVideoComments = (videoId: string) => {
         .from('comentarios')
         .select(`
           *,
-          profiles!comentarios_user_id_fkey (
+          profiles (
             full_name,
             username
           )
