@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
@@ -49,10 +50,17 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-primary-700 mt-8 pt-8 text-center">
+        <div className="border-t border-primary-700 mt-8 pt-8 text-center relative">
           <p className="text-neutral-300">
             © 2024 Web Automação. Todos os direitos reservados.
           </p>
+          
+          {/* Botão discreto para área administrativa */}
+          <Link 
+            to="/admin-login" 
+            className="absolute bottom-0 right-4 w-2 h-2 bg-primary-700 hover:bg-accent-500 transition-colors duration-300 rounded-full opacity-50 hover:opacity-100"
+            title="Área Administrativa"
+          />
         </div>
       </div>
     </footer>

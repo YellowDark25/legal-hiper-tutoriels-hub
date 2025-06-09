@@ -60,16 +60,6 @@ const Header = () => {
               >
                 Contato
               </Link>
-              {user && (
-                <Link 
-                  to="/admin" 
-                  className={`text-primary-700 hover:text-secondary transition-colors font-medium ${
-                    isActive('/admin') ? 'text-secondary border-b-2 border-secondary' : ''
-                  }`}
-                >
-                  Admin
-                </Link>
-              )}
             </nav>
           </div>
 
