@@ -1,20 +1,8 @@
-
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { useAuth } from '@/contexts/AuthContext';
-import NotificationPanel from './NotificationPanel';
-import { UserIcon, LogOutIcon } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -63,28 +51,11 @@ const Header = () => {
             </nav>
           </div>
 
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <>
-                <NotificationPanel />
-                <Link to="/profile">
-                  <Button variant="ghost" size="sm" className="text-primary-700 hover:text-secondary hover:bg-primary-100">
-                    <UserIcon className="w-4 h-4 mr-2" />
-                    Perfil
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-primary-700 hover:text-secondary hover:bg-primary-100">
-                  <LogOutIcon className="w-4 h-4 mr-2" />
-                  Sair
-                </Button>
-              </>
-            ) : (
-              <Link to="/auth">
-                <Button size="sm" className="bg-secondary hover:bg-secondary-600 text-neutral-50">
-                  Entrar
-                </Button>
-              </Link>
-            )}
+          {/* Removido completamente o sistema de login do cliente */}
+          <div className="flex items-center">
+            <span className="text-sm text-primary-600">
+              Sistema restrito à equipe administrativa
+            </span>
           </div>
         </div>
       </div>

@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { UploadIcon, VideoIcon, ImageIcon } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface Category {
   id: string;
@@ -31,7 +30,6 @@ const VideoUpload = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -43,6 +41,17 @@ const VideoUpload = () => {
   });
 
   useEffect(() => {
+    // Verificar se é admin antes de fazer qualquer operação
+    const isAdmin = localStorage.getItem('isAdmin');
+    if (!isAdmin) {
+      toast({
+        title: "Acesso negado",
+        description: "Você precisa estar logado como administrador",
+        variant: "destructive",
+      });
+      return;
+    }
+
     fetchCategories();
     fetchTags();
   }, []);
@@ -104,10 +113,12 @@ const VideoUpload = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
+    // Verificar se é admin
+    const isAdmin = localStorage.getItem('isAdmin');
+    if (!isAdmin) {
       toast({
         title: "Erro",
-        description: "Você precisa estar logado para fazer upload de vídeos",
+        description: "Você precisa estar logado como administrador para fazer upload de vídeos",
         variant: "destructive",
       });
       return;
@@ -122,12 +133,33 @@ const VideoUpload = () => {
       return;
     }
 
+    if (!formData.titulo.trim()) {
+      toast({
+        title: "Erro",
+        description: "Por favor, digite um título para o vídeo",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.sistema) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione um sistema",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     setUploadProgress(0);
 
     try {
+      // ID fixo do admin para o sistema
+      const adminUserId = '00000000-0000-0000-0000-000000000001';
+      
       // Upload do vídeo
-      const videoFileName = `${user.id}/${Date.now()}_${videoFile.name}`;
+      const videoFileName = `admin/${Date.now()}_${videoFile.name}`;
       const videoData = await uploadFile(videoFile, 'videos', videoFileName);
       
       setUploadProgress(50);
@@ -135,7 +167,7 @@ const VideoUpload = () => {
       // Upload da miniatura (se fornecida)
       let thumbnailPath = null;
       if (thumbnailFile) {
-        const thumbnailFileName = `${user.id}/${Date.now()}_${thumbnailFile.name}`;
+        const thumbnailFileName = `admin/${Date.now()}_${thumbnailFile.name}`;
         await uploadFile(thumbnailFile, 'thumbnails', thumbnailFileName);
         thumbnailPath = thumbnailFileName;
       }
@@ -147,7 +179,7 @@ const VideoUpload = () => {
         .from('videos')
         .getPublicUrl(videoData.path);
 
-      // Inserir vídeo no banco
+      // Inserir vídeo no banco sem referência de usuário (sistema admin)
       const { data: videoRecord, error: videoError } = await supabase
         .from('videos')
         .insert([{
@@ -155,12 +187,15 @@ const VideoUpload = () => {
           url: publicUrl,
           video_path: videoData.path,
           thumbnail_path: thumbnailPath,
-          created_by: user.id
+          created_by: adminUserId // ID fixo do admin
         }])
         .select()
         .single();
 
-      if (videoError) throw videoError;
+      if (videoError) {
+        console.error('Erro ao inserir vídeo:', videoError);
+        throw videoError;
+      }
 
       // Inserir tags do vídeo
       if (selectedTags.length > 0) {
@@ -173,7 +208,10 @@ const VideoUpload = () => {
           .from('video_tags')
           .insert(videoTagsData);
 
-        if (tagsError) throw tagsError;
+        if (tagsError) {
+          console.error('Erro ao inserir tags:', tagsError);
+          throw tagsError;
+        }
       }
 
       setUploadProgress(100);
@@ -201,13 +239,25 @@ const VideoUpload = () => {
       console.error('Erro ao criar vídeo:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível criar o vídeo",
+        description: `Não foi possível criar o vídeo: ${error.message || 'Erro desconhecido'}`,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  // Verificar se é admin antes de renderizar
+  const isAdmin = localStorage.getItem('isAdmin');
+  if (!isAdmin) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-red-600">Acesso negado. Faça login como administrador.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

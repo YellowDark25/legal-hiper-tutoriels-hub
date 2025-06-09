@@ -10,6 +10,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,53 +27,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    // Verificar se é admin
+    const checkAdminStatus = () => {
+      const adminStatus = localStorage.getItem('isAdmin');
+      setIsAdmin(adminStatus === 'true');
+    };
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    checkAdminStatus();
 
-    return () => subscription.unsubscribe();
+    // Não inicializar autenticação do Supabase para não interferir com o sistema admin
+    // O sistema agora funciona apenas com localStorage para admin
+    setLoading(false);
+
+    // Listener para mudanças no localStorage do admin
+    const handleStorageChange = () => {
+      checkAdminStatus();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const signUp = async (email: string, password: string, userData?: any) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: userData
-      }
-    });
-    
-    return { error };
+    // Desabilitado - apenas admin pode acessar o sistema
+    return { error: { message: 'Registro não disponível. Sistema restrito à equipe administrativa.' } };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    return { error };
+    // Desabilitado - apenas admin pode acessar o sistema
+    return { error: { message: 'Login não disponível. Sistema restrito à equipe administrativa.' } };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    // Limpar dados admin se existirem
+    localStorage.removeItem('isAdmin');
+    setIsAdmin(false);
+    setUser(null);
+    setSession(null);
   };
 
   const value = {
@@ -82,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signIn,
     signOut,
+    isAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
