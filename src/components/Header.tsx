@@ -19,43 +19,43 @@ const Header = () => {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <header className="bg-white shadow-sm border-b fixed top-0 left-0 right-0 z-40">
+    <header className="bg-neutral-50 shadow-sm border-b border-primary-200 fixed top-0 left-0 right-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-8">
-            <Link to="/" className="text-2xl font-bold text-primary">
+            <Link to="/" className="text-2xl font-bold text-primary-900">
               TutorialHub
             </Link>
             
             <nav className="hidden md:flex space-x-6">
               <Link 
                 to="/" 
-                className={`text-gray-700 hover:text-primary transition-colors ${
-                  isActive('/') ? 'text-primary font-medium' : ''
+                className={`text-primary-700 hover:text-secondary transition-colors font-medium ${
+                  isActive('/') ? 'text-secondary border-b-2 border-secondary' : ''
                 }`}
               >
                 Início
               </Link>
               <Link 
                 to="/pdvlegal" 
-                className={`text-gray-700 hover:text-primary transition-colors ${
-                  isActive('/pdvlegal') ? 'text-primary font-medium' : ''
+                className={`text-primary-700 hover:text-secondary transition-colors font-medium ${
+                  isActive('/pdvlegal') ? 'text-secondary border-b-2 border-secondary' : ''
                 }`}
               >
                 PDV Legal
               </Link>
               <Link 
                 to="/hiper" 
-                className={`text-gray-700 hover:text-primary transition-colors ${
-                  isActive('/hiper') ? 'text-primary font-medium' : ''
+                className={`text-primary-700 hover:text-secondary transition-colors font-medium ${
+                  isActive('/hiper') ? 'text-secondary border-b-2 border-secondary' : ''
                 }`}
               >
                 Hiper
               </Link>
               <Link 
                 to="/contato" 
-                className={`text-gray-700 hover:text-primary transition-colors ${
-                  isActive('/contato') ? 'text-primary font-medium' : ''
+                className={`text-primary-700 hover:text-secondary transition-colors font-medium ${
+                  isActive('/contato') ? 'text-secondary border-b-2 border-secondary' : ''
                 }`}
               >
                 Contato
@@ -63,8 +63,8 @@ const Header = () => {
               {user && (
                 <Link 
                   to="/admin" 
-                  className={`text-gray-700 hover:text-primary transition-colors ${
-                    isActive('/admin') ? 'text-primary font-medium' : ''
+                  className={`text-primary-700 hover:text-secondary transition-colors font-medium ${
+                    isActive('/admin') ? 'text-secondary border-b-2 border-secondary' : ''
                   }`}
                 >
                   Admin
@@ -78,19 +78,19 @@ const Header = () => {
               <>
                 <NotificationPanel />
                 <Link to="/profile">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="text-primary-700 hover:text-secondary hover:bg-primary-100">
                     <UserIcon className="w-4 h-4 mr-2" />
                     Perfil
                   </Button>
                 </Link>
-                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-primary-700 hover:text-secondary hover:bg-primary-100">
                   <LogOutIcon className="w-4 h-4 mr-2" />
                   Sair
                 </Button>
               </>
             ) : (
               <Link to="/auth">
-                <Button size="sm">
+                <Button size="sm" className="bg-secondary hover:bg-secondary-600 text-neutral-50">
                   Entrar
                 </Button>
               </Link>

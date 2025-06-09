@@ -3,20 +3,20 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer className="bg-neutral-900 text-white">
+    <footer className="bg-primary-900 text-neutral-50">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* PDVLegal Section */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-accent-300">PDVLegal</h3>
-            <p className="text-gray-300 mb-4">
+            <h3 className="text-xl font-bold mb-4 text-accent-500">PDVLegal</h3>
+            <p className="text-neutral-200 mb-4">
               Sistema completo de PDV para estabelecimentos comerciais.
             </p>
             <a
               href="https://www.webautomacao.com.br/site/produtos/pdv-legal/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-secondary hover:text-secondary-300 transition-colors"
+              className="text-secondary hover:text-secondary-400 transition-colors font-medium"
             >
               Visite o site oficial →
             </a>
@@ -24,15 +24,15 @@ const Footer = () => {
 
           {/* Hiper Section */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-accent-300">Hiper</h3>
-            <p className="text-gray-300 mb-4">
+            <h3 className="text-xl font-bold mb-4 text-accent-500">Hiper</h3>
+            <p className="text-neutral-200 mb-4">
               Sistema integrado de gestão empresarial completo.
             </p>
             <a
               href="https://hiper.com.br"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-secondary hover:text-secondary-300 transition-colors"
+              className="text-secondary hover:text-secondary-400 transition-colors font-medium"
             >
               Visite o site oficial →
             </a>
@@ -40,8 +40,8 @@ const Footer = () => {
 
           {/* Contact Section */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-accent-300">Contato</h3>
-            <div className="space-y-2 text-gray-300">
+            <h3 className="text-xl font-bold mb-4 text-accent-500">Contato</h3>
+            <div className="space-y-2 text-neutral-200">
               <p>📧 suporte@webautomacao.com.br</p>
               <p>📞 (11) 1234-5678</p>
               <p>🕒 Segunda a Sexta: 8h às 18h</p>
@@ -49,8 +49,8 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-700 mt-8 pt-8 text-center">
-          <p className="text-gray-400">
+        <div className="border-t border-primary-700 mt-8 pt-8 text-center">
+          <p className="text-neutral-300">
             © 2024 Web Automação. Todos os direitos reservados.
           </p>
         </div>
