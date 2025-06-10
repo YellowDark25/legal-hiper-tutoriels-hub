@@ -14,36 +14,40 @@ const AdminLogin = () => {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { signIn, user, isAdmin } = useAuth();
+  const { signIn, user, isAdmin, loading: authLoading } = useAuth();
 
   useEffect(() => {
     // Se já estiver logado como admin, redirecionar
-    if (user && isAdmin) {
+    if (!authLoading && user && isAdmin) {
       navigate('/admin');
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, isAdmin, navigate, authLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      console.log('Tentando fazer login com:', loginData.email);
       const { error } = await signIn(loginData.email, loginData.password);
       
       if (error) {
+        console.error('Erro no login:', error);
         toast({
           title: "Erro no login",
           description: error.message,
           variant: "destructive",
         });
       } else {
+        console.log('Login realizado com sucesso');
         toast({
           title: "Login realizado com sucesso!",
-          description: "Bem-vindo à área administrativa.",
+          description: "Verificando permissões de administrador...",
         });
         // A navegação será feita pelo useEffect quando isAdmin for atualizado
       }
     } catch (error) {
+      console.error('Erro inesperado no login:', error);
       toast({
         title: "Erro inesperado",
         description: "Ocorreu um erro durante o login.",
@@ -57,6 +61,18 @@ const AdminLogin = () => {
   const handleBack = () => {
     navigate(-1);
   };
+
+  // Mostrar loading enquanto verifica autenticação
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center px-4">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Verificando autenticação...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center px-4 relative">
