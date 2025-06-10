@@ -12,6 +12,7 @@ import Hiper from "./pages/Hiper";
 import Contato from "./pages/Contato";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,7 +31,7 @@ const App: React.FC = () => (
             <Route path="/contato" element={<Contato />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin-login" element={<AdminLogin />} />
-            {/* Removidas as rotas /auth e /profile que não são mais necessárias */}
+            <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

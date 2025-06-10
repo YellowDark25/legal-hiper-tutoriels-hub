@@ -1,51 +1,57 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ShieldCheck } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { signIn, user, isAdmin } = useAuth();
 
-  const ADMIN_CREDENTIALS = {
-    email: 'nexsyn@unidadelrv.com',
-    password: 'Nexsyn@2025'
-  };
+  useEffect(() => {
+    // Se já estiver logado como admin, redirecionar
+    if (user && isAdmin) {
+      navigate('/admin');
+    }
+  }, [user, isAdmin, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simular delay de autenticação
-    setTimeout(() => {
-      if (loginData.email === ADMIN_CREDENTIALS.email && 
-          loginData.password === ADMIN_CREDENTIALS.password) {
-        
-        // Salvar status de admin no localStorage
-        localStorage.setItem('isAdmin', 'true');
-        
+    try {
+      const { error } = await signIn(loginData.email, loginData.password);
+      
+      if (error) {
+        toast({
+          title: "Erro no login",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
         toast({
           title: "Login realizado com sucesso!",
           description: "Bem-vindo à área administrativa.",
         });
-        
-        navigate('/admin');
-      } else {
-        toast({
-          title: "Erro no login",
-          description: "Credenciais inválidas. Verifique o email e senha.",
-          variant: "destructive",
-        });
+        // A navegação será feita pelo useEffect quando isAdmin for atualizado
       }
+    } catch (error) {
+      toast({
+        title: "Erro inesperado",
+        description: "Ocorreu um erro durante o login.",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const handleBack = () => {
@@ -66,6 +72,11 @@ const AdminLogin = () => {
 
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardHeader className="text-center bg-primary-900 text-neutral-50 rounded-t-lg">
+          <div className="flex items-center justify-center mb-4">
+            <div className="bg-secondary p-3 rounded-full">
+              <ShieldCheck className="w-8 h-8 text-neutral-50" />
+            </div>
+          </div>
           <CardTitle className="text-2xl font-bold">Área Administrativa</CardTitle>
           <p className="text-primary-200 text-sm mt-2">
             Acesso restrito para administradores
@@ -112,6 +123,16 @@ const AdminLogin = () => {
               Entrar
             </Button>
           </form>
+          
+          <div className="mt-6 p-4 bg-primary-100 rounded-lg border border-primary-200">
+            <h4 className="text-sm font-medium text-primary-800 mb-2">
+              Credenciais do Usuário Mestre:
+            </h4>
+            <p className="text-xs text-primary-600">
+              Email: nexsyn@unidadelrv.com<br />
+              Senha: Nexsyn@2025
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

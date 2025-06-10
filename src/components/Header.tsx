@@ -1,8 +1,12 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { ShieldIcon } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const location = useLocation();
+  const { isAdmin, user } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -48,14 +52,37 @@ const Header = () => {
               >
                 Contato
               </Link>
+              
+              {/* Link Admin - só aparece para administradores */}
+              {user && isAdmin && (
+                <Link 
+                  to="/admin" 
+                  className={`text-primary-700 hover:text-secondary transition-colors font-medium flex items-center space-x-1 ${
+                    isActive('/admin') ? 'text-secondary border-b-2 border-secondary' : ''
+                  }`}
+                >
+                  <ShieldIcon className="w-4 h-4" />
+                  <span>Admin</span>
+                </Link>
+              )}
             </nav>
           </div>
 
-          {/* Removido completamente o sistema de login do cliente */}
           <div className="flex items-center">
-            <span className="text-sm text-primary-600">
-              Sistema restrito à equipe administrativa
-            </span>
+            {user && isAdmin ? (
+              <div className="flex items-center space-x-2">
+                <div className="bg-secondary p-1 rounded-full">
+                  <ShieldIcon className="w-4 h-4 text-neutral-50" />
+                </div>
+                <span className="text-sm text-primary-700 font-medium">
+                  Admin logado
+                </span>
+              </div>
+            ) : (
+              <span className="text-sm text-primary-600">
+                Sistema restrito à equipe administrativa
+              </span>
+            )}
           </div>
         </div>
       </div>
