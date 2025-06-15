@@ -72,13 +72,6 @@ const AdminLogin = () => {
     navigate(-1);
   };
 
-  const handleClearStorage = () => {
-    console.log('Limpando localStorage...');
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.reload();
-  };
-
   // Mostrar loading enquanto verifica autenticação
   if (authLoading) {
     return (
@@ -103,16 +96,6 @@ const AdminLogin = () => {
         Voltar
       </Button>
 
-      {/* Botão para limpar storage (debug) */}
-      <Button
-        variant="outline"
-        onClick={handleClearStorage}
-        className="absolute top-6 right-6 text-primary-700 hover:text-secondary"
-        size="sm"
-      >
-        Limpar Storage
-      </Button>
-
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardHeader className="text-center bg-primary-900 text-neutral-50 rounded-t-lg">
           <div className="flex items-center justify-center mb-4">
@@ -126,16 +109,6 @@ const AdminLogin = () => {
           </p>
         </CardHeader>
         <CardContent className="p-8 bg-neutral-50">
-          {/* Debug info */}
-          <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
-            <p><strong>Debug:</strong></p>
-            <p>User: {user?.email || 'null'}</p>
-            <p>IsAdmin: {isAdmin ? 'true' : 'false'}</p>
-            <p>Profile Admin: {profile?.is_admin ? 'true' : 'false'}</p>
-            <p>Auth Loading: {authLoading ? 'true' : 'false'}</p>
-            <p>Profile Data: {JSON.stringify(profile)}</p>
-          </div>
-
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <Label htmlFor="email" className="text-primary-800 font-medium">
@@ -176,16 +149,6 @@ const AdminLogin = () => {
               Entrar
             </Button>
           </form>
-          
-          <div className="mt-6 p-4 bg-primary-100 rounded-lg border border-primary-200">
-            <h4 className="text-sm font-medium text-primary-800 mb-2">
-              Credenciais do Usuário Mestre:
-            </h4>
-            <p className="text-xs text-primary-600">
-              Email: nexsyn@unidadelrv.com<br />
-              Senha: Nexsyn@2025
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>
