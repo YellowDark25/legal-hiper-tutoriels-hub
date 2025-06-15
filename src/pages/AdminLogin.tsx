@@ -14,14 +14,25 @@ const AdminLogin = () => {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { signIn, user, isAdmin, loading: authLoading } = useAuth();
+  const { signIn, user, isAdmin, loading: authLoading, profile } = useAuth();
 
   useEffect(() => {
+    console.log('AdminLogin - Estado atual:', {
+      authLoading,
+      user: user?.email,
+      isAdmin,
+      profile: profile?.is_admin,
+      localStorage: {
+        supabaseAuth: localStorage.getItem('sb-cddcd886-4da4-460f-befa-9834bd1dae50-auth-token')
+      }
+    });
+
     // Se já estiver logado como admin, redirecionar
     if (!authLoading && user && isAdmin) {
+      console.log('Redirecionando para /admin - usuário já é admin');
       navigate('/admin');
     }
-  }, [user, isAdmin, navigate, authLoading]);
+  }, [user, isAdmin, navigate, authLoading, profile]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +40,8 @@ const AdminLogin = () => {
 
     try {
       console.log('Tentando fazer login com:', loginData.email);
+      console.log('Estado antes do login:', { user, isAdmin, profile });
+      
       const { error } = await signIn(loginData.email, loginData.password);
       
       if (error) {
@@ -40,6 +53,8 @@ const AdminLogin = () => {
         });
       } else {
         console.log('Login realizado com sucesso');
+        console.log('Estado após login (imediato):', { user, isAdmin, profile });
+        
         toast({
           title: "Login realizado com sucesso!",
           description: "Verificando permissões de administrador...",
@@ -60,6 +75,12 @@ const AdminLogin = () => {
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  const handleClearStorage = () => {
+    console.log('Limpando localStorage...');
+    localStorage.clear();
+    window.location.reload();
   };
 
   // Mostrar loading enquanto verifica autenticação
@@ -86,6 +107,16 @@ const AdminLogin = () => {
         Voltar
       </Button>
 
+      {/* Botão para limpar storage (debug) */}
+      <Button
+        variant="outline"
+        onClick={handleClearStorage}
+        className="absolute top-6 right-6 text-primary-700 hover:text-secondary"
+        size="sm"
+      >
+        Limpar Storage
+      </Button>
+
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardHeader className="text-center bg-primary-900 text-neutral-50 rounded-t-lg">
           <div className="flex items-center justify-center mb-4">
@@ -99,6 +130,15 @@ const AdminLogin = () => {
           </p>
         </CardHeader>
         <CardContent className="p-8 bg-neutral-50">
+          {/* Debug info */}
+          <div className="mb-4 p-3 bg-gray-100 rounded text-xs">
+            <p><strong>Debug:</strong></p>
+            <p>User: {user?.email || 'null'}</p>
+            <p>IsAdmin: {isAdmin ? 'true' : 'false'}</p>
+            <p>Profile Admin: {profile?.is_admin ? 'true' : 'false'}</p>
+            <p>Auth Loading: {authLoading ? 'true' : 'false'}</p>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <Label htmlFor="email" className="text-primary-800 font-medium">
