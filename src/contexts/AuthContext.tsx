@@ -17,6 +17,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Tempo de expiração da sessão em milissegundos (30 minutos)
+const SESSION_TIMEOUT = 30 * 60 * 1000;
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -31,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -54,6 +58,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const startSessionTimer = () => {
+    // Limpar timer existente se houver
+    if (sessionTimer) {
+      clearTimeout(sessionTimer);
+    }
+
+    // Criar novo timer
+    const timer = setTimeout(async () => {
+      console.log('Sessão expirada. Fazendo logout automático...');
+      await signOut();
+      
+      // Mostrar mensagem para o usuário
+      if (window.location.pathname !== '/admin-login') {
+        alert('Sua sessão expirou. Você será redirecionado para a página de login.');
+        window.location.href = '/admin-login';
+      }
+    }, SESSION_TIMEOUT);
+
+    setSessionTimer(timer);
+    console.log(`Timer de sessão iniciado. Expira em ${SESSION_TIMEOUT / 1000 / 60} minutos.`);
+  };
+
+  const clearSessionTimer = () => {
+    if (sessionTimer) {
+      clearTimeout(sessionTimer);
+      setSessionTimer(null);
+      console.log('Timer de sessão limpo.');
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -73,11 +107,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (mounted) {
           setProfile(profileData);
           setIsAdmin(profileData?.is_admin || false);
+          
+          // Iniciar timer de sessão apenas se for admin
+          if (profileData?.is_admin) {
+            startSessionTimer();
+          }
+          
           setLoading(false);
         }
       } else {
         setProfile(null);
         setIsAdmin(false);
+        clearSessionTimer();
         setLoading(false);
       }
     };
@@ -107,6 +148,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (mounted) {
             setProfile(profileData);
             setIsAdmin(profileData?.is_admin || false);
+            
+            // Iniciar timer de sessão apenas se for admin
+            if (profileData?.is_admin) {
+              startSessionTimer();
+            }
           }
         }
       } catch (error) {
@@ -122,9 +168,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      clearSessionTimer();
       subscription.unsubscribe();
     };
   }, []);
+
+  // Renovar timer em atividades do usuário
+  useEffect(() => {
+    const renewTimer = () => {
+      if (user && isAdmin) {
+        startSessionTimer();
+      }
+    };
+
+    // Eventos que renovam o timer
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, renewTimer, true);
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, renewTimer, true);
+      });
+    };
+  }, [user, isAdmin]);
 
   const signUp = async (email: string, password: string, userData?: any) => {
     const { error } = await supabase.auth.signUp({
@@ -157,6 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     setLoading(true);
+    clearSessionTimer();
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
