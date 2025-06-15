@@ -30,47 +30,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<any>(null);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      console.log('Buscando perfil para usuário:', userId);
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Erro ao buscar perfil:', error);
+        return null;
+      }
+      
+      console.log('Perfil encontrado:', profileData);
+      return profileData;
+    } catch (error) {
+      console.error('Erro inesperado ao buscar perfil:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return;
+    // Função para processar mudanças de autenticação
+    const handleAuthChange = async (event: string, session: Session | null) => {
+      if (!mounted) return;
 
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
+      console.log('Auth state changed:', event, session?.user?.email);
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        setLoading(true);
+        const profileData = await fetchProfile(session.user.id);
         
-        if (session?.user) {
-          // Buscar perfil do usuário
-          try {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (error) {
-              console.error('Erro ao buscar perfil:', error);
-            } else {
-              console.log('Perfil carregado:', profileData);
-              setProfile(profileData);
-              setIsAdmin(profileData?.is_admin || false);
-            }
-          } catch (error) {
-            console.error('Erro inesperado ao buscar perfil:', error);
-          }
-        } else {
-          setProfile(null);
-          setIsAdmin(false);
+        if (mounted) {
+          setProfile(profileData);
+          setIsAdmin(profileData?.is_admin || false);
+          setLoading(false);
         }
-        
+      } else {
+        setProfile(null);
+        setIsAdmin(false);
         setLoading(false);
       }
-    );
+    };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
 
     // Check for existing session
     const getInitialSession = async () => {
@@ -89,16 +102,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          const profileData = await fetchProfile(session.user.id);
           
-          if (profileError) {
-            console.error('Erro ao buscar perfil inicial:', profileError);
-          } else {
-            console.log('Perfil inicial carregado:', profileData);
+          if (mounted) {
             setProfile(profileData);
             setIsAdmin(profileData?.is_admin || false);
           }
@@ -134,6 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     console.log('Iniciando login para:', email);
+    setLoading(true);
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -141,17 +149,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (error) {
       console.error('Erro no signIn:', error);
+      setLoading(false);
     }
     
     return { error };
   };
 
   const signOut = async () => {
+    setLoading(true);
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
+    setLoading(false);
   };
 
   const updateTheme = async (theme: string) => {

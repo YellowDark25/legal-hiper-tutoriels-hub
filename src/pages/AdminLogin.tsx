@@ -21,10 +21,7 @@ const AdminLogin = () => {
       authLoading,
       user: user?.email,
       isAdmin,
-      profile: profile?.is_admin,
-      localStorage: {
-        supabaseAuth: localStorage.getItem('sb-cddcd886-4da4-460f-befa-9834bd1dae50-auth-token')
-      }
+      profile: profile?.is_admin
     });
 
     // Se já estiver logado como admin, redirecionar
@@ -40,7 +37,6 @@ const AdminLogin = () => {
 
     try {
       console.log('Tentando fazer login com:', loginData.email);
-      console.log('Estado antes do login:', { user, isAdmin, profile });
       
       const { error } = await signIn(loginData.email, loginData.password);
       
@@ -53,7 +49,6 @@ const AdminLogin = () => {
         });
       } else {
         console.log('Login realizado com sucesso');
-        console.log('Estado após login (imediato):', { user, isAdmin, profile });
         
         toast({
           title: "Login realizado com sucesso!",
@@ -173,9 +168,9 @@ const AdminLogin = () => {
             <Button 
               type="submit" 
               className="w-full bg-secondary hover:bg-secondary-600 text-neutral-50 py-3 font-medium" 
-              disabled={loading}
+              disabled={loading || authLoading}
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {(loading || authLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Entrar
             </Button>
           </form>
