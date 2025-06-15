@@ -69,7 +69,15 @@ const AdminLogin = () => {
   };
 
   const handleBack = () => {
-    navigate(-1);
+    console.log('Botão voltar clicado');
+    try {
+      // Tentar voltar uma página no histórico
+      navigate(-1);
+    } catch (error) {
+      console.error('Erro ao navegar de volta:', error);
+      // Fallback: navegar para a página inicial
+      navigate('/');
+    }
   };
 
   // Mostrar loading enquanto verifica autenticação
