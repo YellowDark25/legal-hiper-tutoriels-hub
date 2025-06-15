@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -69,15 +68,8 @@ const AdminLogin = () => {
   };
 
   const handleBack = () => {
-    console.log('Botão voltar clicado');
-    try {
-      // Tentar voltar uma página no histórico
-      navigate(-1);
-    } catch (error) {
-      console.error('Erro ao navegar de volta:', error);
-      // Fallback: navegar para a página inicial
-      navigate('/');
-    }
+    console.log('Navegando para página inicial');
+    navigate('/');
   };
 
   // Mostrar loading enquanto verifica autenticação
