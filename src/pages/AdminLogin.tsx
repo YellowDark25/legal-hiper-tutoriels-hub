@@ -75,6 +75,7 @@ const AdminLogin = () => {
   const handleClearStorage = () => {
     console.log('Limpando localStorage...');
     localStorage.clear();
+    sessionStorage.clear();
     window.location.reload();
   };
 

@@ -101,7 +101,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        setLoading(true);
         const profileData = await fetchProfile(session.user.id);
         
         if (mounted) {
@@ -110,16 +109,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           // Iniciar timer de sessão apenas se for admin
           if (profileData?.is_admin) {
+            console.log('Usuário é admin, iniciando timer de sessão');
             startSessionTimer();
           }
           
           setLoading(false);
         }
       } else {
-        setProfile(null);
-        setIsAdmin(false);
-        clearSessionTimer();
-        setLoading(false);
+        if (mounted) {
+          setProfile(null);
+          setIsAdmin(false);
+          clearSessionTimer();
+          setLoading(false);
+        }
       }
     };
 
@@ -129,13 +131,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check for existing session
     const getInitialSession = async () => {
       try {
+        console.log('Verificando sessão existente...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Erro ao buscar sessão:', error);
-          setLoading(false);
+          if (mounted) setLoading(false);
           return;
         }
+
+        console.log('Sessão inicial:', session?.user?.email || 'nenhuma');
 
         if (!mounted) return;
 
@@ -151,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             // Iniciar timer de sessão apenas se for admin
             if (profileData?.is_admin) {
+              console.log('Usuário é admin, iniciando timer de sessão');
               startSessionTimer();
             }
           }

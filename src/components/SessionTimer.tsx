@@ -5,12 +5,24 @@ import { Clock } from 'lucide-react';
 
 const SessionTimer = () => {
   const [timeLeft, setTimeLeft] = useState<number>(30 * 60); // 30 minutos em segundos
-  const { user, isAdmin } = useAuth();
+  
+  // Verificar se o contexto está disponível
+  let user, isAdmin;
+  try {
+    const auth = useAuth();
+    user = auth.user;
+    isAdmin = auth.isAdmin;
+  } catch (error) {
+    console.log('SessionTimer: AuthContext não disponível');
+    return null;
+  }
 
   useEffect(() => {
     if (!user || !isAdmin) {
       return;
     }
+
+    console.log('SessionTimer: Iniciando timer para admin');
 
     // Resetar o timer quando há atividade
     const resetTimer = () => {
