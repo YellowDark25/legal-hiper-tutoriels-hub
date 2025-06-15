@@ -133,6 +133,7 @@ const AdminLogin = () => {
             <p>IsAdmin: {isAdmin ? 'true' : 'false'}</p>
             <p>Profile Admin: {profile?.is_admin ? 'true' : 'false'}</p>
             <p>Auth Loading: {authLoading ? 'true' : 'false'}</p>
+            <p>Profile Data: {JSON.stringify(profile)}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">

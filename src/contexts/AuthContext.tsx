@@ -47,14 +47,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error('Erro ao buscar perfil:', error);
-        return null;
+        // Se não encontrar perfil, criar um básico
+        if (error.code === 'PGRST116') {
+          console.log('Perfil não encontrado, criando perfil básico...');
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([{ id: userId, is_admin: false }])
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('Erro ao criar perfil:', createError);
+            return { is_admin: false };
+          }
+          
+          console.log('Perfil criado:', newProfile);
+          return newProfile;
+        }
+        return { is_admin: false };
       }
       
       console.log('Perfil encontrado:', profileData);
       return profileData;
     } catch (error) {
       console.error('Erro inesperado ao buscar perfil:', error);
-      return null;
+      return { is_admin: false };
     }
   };
 
@@ -101,9 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('Usuário logado, buscando perfil...');
         const profileData = await fetchProfile(session.user.id);
         
         if (mounted) {
+          console.log('Configurando perfil:', profileData);
           setProfile(profileData);
           setIsAdmin(profileData?.is_admin || false);
           
@@ -113,10 +132,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             startSessionTimer();
           }
           
+          console.log('Finalizando loading do auth');
           setLoading(false);
         }
       } else {
         if (mounted) {
+          console.log('Usuário deslogado, limpando estado');
           setProfile(null);
           setIsAdmin(false);
           clearSessionTimer();
@@ -148,9 +169,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('Sessão existente encontrada, buscando perfil...');
           const profileData = await fetchProfile(session.user.id);
           
           if (mounted) {
+            console.log('Configurando perfil da sessão existente:', profileData);
             setProfile(profileData);
             setIsAdmin(profileData?.is_admin || false);
             
@@ -159,11 +182,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log('Usuário é admin, iniciando timer de sessão');
               startSessionTimer();
             }
+            
+            console.log('Finalizando loading da sessão existente');
+            setLoading(false);
+          }
+        } else {
+          if (mounted) {
+            console.log('Nenhuma sessão existente, finalizando loading');
+            setLoading(false);
           }
         }
       } catch (error) {
         console.error('Erro inesperado ao verificar sessão:', error);
-      } finally {
         if (mounted) {
           setLoading(false);
         }
@@ -215,7 +245,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     console.log('Iniciando login para:', email);
-    setLoading(true);
     
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -224,7 +253,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (error) {
       console.error('Erro no signIn:', error);
-      setLoading(false);
     }
     
     return { error };
