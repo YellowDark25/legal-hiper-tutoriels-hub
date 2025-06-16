@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { UploadIcon, VideoIcon, ImageIcon } from 'lucide-react';
 
 interface Category {
@@ -30,6 +31,7 @@ const VideoUpload = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const { toast } = useToast();
+  const { user, isAdmin } = useAuth();
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -41,20 +43,11 @@ const VideoUpload = () => {
   });
 
   useEffect(() => {
-    // Verificar se é admin antes de fazer qualquer operação
-    const isAdmin = localStorage.getItem('isAdmin');
-    if (!isAdmin) {
-      toast({
-        title: "Acesso negado",
-        description: "Você precisa estar logado como administrador",
-        variant: "destructive",
-      });
-      return;
+    if (user && isAdmin) {
+      fetchCategories();
+      fetchTags();
     }
-
-    fetchCategories();
-    fetchTags();
-  }, []);
+  }, [user, isAdmin]);
 
   const fetchCategories = async () => {
     try {
@@ -113,9 +106,7 @@ const VideoUpload = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Verificar se é admin
-    const isAdmin = localStorage.getItem('isAdmin');
-    if (!isAdmin) {
+    if (!user || !isAdmin) {
       toast({
         title: "Erro",
         description: "Você precisa estar logado como administrador para fazer upload de vídeos",
@@ -247,9 +238,8 @@ const VideoUpload = () => {
     }
   };
 
-  // Verificar se é admin antes de renderizar
-  const isAdmin = localStorage.getItem('isAdmin');
-  if (!isAdmin) {
+  // Verificar se é admin usando o contexto de autenticação
+  if (!user || !isAdmin) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
