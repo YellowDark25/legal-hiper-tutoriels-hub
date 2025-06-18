@@ -1,15 +1,19 @@
-
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { ShieldIcon } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShieldIcon, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import SessionTimer from './SessionTimer';
 
 const Header = () => {
   const location = useLocation();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => location.pathname === path;
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/auth');
+  };
 
   return (
     <>
@@ -54,44 +58,39 @@ const Header = () => {
                 >
                   Contato
                 </Link>
-                
-                {/* Link Admin - só aparece para administradores */}
-                {user && isAdmin && (
-                  <Link 
-                    to="/admin" 
-                    className={`text-primary-700 hover:text-secondary transition-colors font-medium flex items-center space-x-1 ${
-                      isActive('/admin') ? 'text-secondary border-b-2 border-secondary' : ''
-                    }`}
-                  >
-                    <ShieldIcon className="w-4 h-4" />
-                    <span>Admin</span>
-                  </Link>
-                )}
               </nav>
             </div>
 
-            <div className="flex items-center">
-              {user && isAdmin ? (
-                <div className="flex items-center space-x-2">
-                  <div className="bg-secondary p-1 rounded-full">
-                    <ShieldIcon className="w-4 h-4 text-neutral-50" />
-                  </div>
-                  <span className="text-sm text-primary-700 font-medium">
-                    Admin logado
-                  </span>
-                </div>
-              ) : (
-                <span className="text-sm text-primary-600">
-                  Sistema restrito à equipe administrativa
+            <div className="flex items-center gap-4">
+              {user && (
+                <span className="text-sm text-primary-700 font-medium truncate max-w-[160px]" title={user.email || ''}>
+                  {user.email}
                 </span>
+              )}
+              {user && isAdmin && (
+                <Link 
+                  to="/admin" 
+                  className={`text-primary-700 hover:text-secondary transition-colors font-medium flex items-center space-x-1 px-3 py-1 rounded border border-primary-200 bg-primary-50 hover:bg-primary-100 ${
+                    isActive('/admin') ? 'text-secondary border-secondary' : ''
+                  }`}
+                >
+                  <ShieldIcon className="w-4 h-4" />
+                  <span>Admin</span>
+                </Link>
+              )}
+              {user && (
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-1 rounded-lg bg-primary text-white font-bold hover:bg-primary-800 transition-all text-sm"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sair
+                </button>
               )}
             </div>
           </div>
         </div>
       </header>
-      
-      {/* Timer de sessão */}
-      <SessionTimer />
     </>
   );
 };

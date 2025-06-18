@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { FolderIcon, EditIcon, TrashIcon, PlusIcon } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface Category {
   id: string;
@@ -24,6 +24,8 @@ const CategoryManager = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const { toast } = useToast();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [categoryToDeleteId, setCategoryToDeleteId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -123,29 +125,53 @@ const CategoryManager = () => {
     setShowForm(true);
   };
 
-  const deleteCategory = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta categoria?')) return;
+  const handleDeleteClick = (categoryId: string) => {
+    setCategoryToDeleteId(categoryId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCategory = async () => {
+    if (!categoryToDeleteId) return;
 
     try {
       const { error } = await supabase
         .from('categorias')
         .delete()
-        .eq('id', id);
+        .eq('id', categoryToDeleteId);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23503') { // Foreign key violation
+          toast({
+            title: "Erro",
+            description: "Não foi possível excluir a categoria pois ela está associada a vídeos existentes.",
+            variant: "destructive",
+          });
+        } else {
+          console.error('Erro ao excluir categoria:', error);
+          toast({
+            title: "Erro",
+            description: "Não foi possível excluir a categoria",
+            variant: "destructive",
+          });
+        }
+        return; // Prevent further execution on error
+      }
 
-      setCategories(categories.filter(cat => cat.id !== id));
+      setCategories(categories.filter(cat => cat.id !== categoryToDeleteId));
       toast({
         title: "Sucesso",
         description: "Categoria excluída com sucesso",
       });
     } catch (error) {
-      console.error('Erro ao excluir categoria:', error);
+      console.error('Erro ao excluir categoria (catch):', error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir a categoria",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setCategoryToDeleteId(null);
     }
   };
 
@@ -249,19 +275,36 @@ const CategoryManager = () => {
                 
                 <div className="flex gap-2">
                   <Button 
-                    variant="outline" 
+                    variant="ghost" 
                     size="sm"
                     onClick={() => editCategory(category)}
+                    className="h-6 w-6 p-0"
                   >
-                    <EditIcon className="w-4 h-4" />
+                    <EditIcon className="w-3 h-3" />
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => deleteCategory(category.id)}
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteClick(category.id)}
+                      >
+                        <TrashIcon className="w-3 h-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza que deseja excluir esta categoria?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Essa ação não pode ser desfeita. Isso excluirá permanentemente a categoria e seus dados relacionados.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteCategory}>Excluir</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardContent>

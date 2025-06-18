@@ -1,9 +1,8 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { VideoIcon, TagIcon, FolderIcon, UploadIcon, LogOutIcon, ShieldIcon, UserPlusIcon, SunIcon, MoonIcon } from 'lucide-react';
+import { VideoIcon, TagIcon, FolderIcon, UploadIcon, LogOutIcon, ShieldIcon, UserPlusIcon, SunIcon, MoonIcon, UsersIcon } from 'lucide-react';
 import { Switch } from "@/components/ui/switch";
 import VideoManager from '@/components/admin/VideoManager';
 import CategoryManager from '@/components/admin/CategoryManager';
@@ -12,18 +11,19 @@ import VideoUpload from '@/components/admin/VideoUpload';
 import InviteManager from '@/components/admin/InviteManager';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import ClientesManager from '@/components/admin/ClientesManager';
+import Footer from '@/components/Footer';
 
 const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAdmin, signOut, profile, updateTheme } = useAuth();
+  const { user, isAdmin, signOut, profile, updateTheme, loading } = useAuth();
 
   useEffect(() => {
-    // Verificar se o usuário está autenticado como admin
-    if (!user || !isAdmin) {
-      navigate('/admin-login');
+    if (!loading && (!user || !isAdmin)) {
+      navigate('/auth');
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, isAdmin, loading, navigate]);
 
   const handleLogout = async () => {
     await signOut();
@@ -31,7 +31,7 @@ const Admin = () => {
       title: "Logout realizado",
       description: "Você foi desconectado da área administrativa.",
     });
-    navigate('/');
+    navigate('/auth');
   };
 
   const handleThemeToggle = async (isDark: boolean) => {
@@ -45,8 +45,11 @@ const Admin = () => {
 
   const isDarkTheme = profile?.theme_preference === 'dark';
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-lg">Carregando...</div>;
+  }
   if (!user || !isAdmin) {
-    return null; // Ou um loading spinner
+    return null;
   }
 
   return (
@@ -108,7 +111,7 @@ const Admin = () => {
       {/* Conteúdo principal */}
       <div className="container mx-auto px-4 py-8">
         <Tabs defaultValue="videos" className="w-full">
-          <TabsList className={`grid w-full grid-cols-5 mb-8 shadow-sm transition-colors duration-300 ${
+          <TabsList className={`grid w-full grid-cols-6 mb-8 shadow-sm transition-colors duration-300 ${
             isDarkTheme
               ? 'bg-gray-800 border border-gray-700'
               : 'bg-neutral-50 border border-primary-200'
@@ -167,6 +170,17 @@ const Admin = () => {
             >
               <UserPlusIcon className="w-4 h-4" />
               Convites
+            </TabsTrigger>
+            <TabsTrigger 
+              value="clientes" 
+              className={`flex items-center gap-2 transition-colors duration-300 ${
+                isDarkTheme
+                  ? 'data-[state=active]:bg-secondary data-[state=active]:text-neutral-50 text-gray-300'
+                  : 'data-[state=active]:bg-secondary data-[state=active]:text-neutral-50'
+              }`}
+            >
+              <UsersIcon className="w-4 h-4" />
+              Clientes
             </TabsTrigger>
           </TabsList>
 
@@ -254,9 +268,27 @@ const Admin = () => {
               </div>
               <InviteManager />
             </TabsContent>
+
+            <TabsContent value="clientes" className="p-6 m-0">
+              <div className="mb-6">
+                <h2 className={`text-xl font-bold mb-2 transition-colors duration-300 ${
+                  isDarkTheme ? 'text-neutral-50' : 'text-primary-900'
+                }`}>
+                  Clientes Cadastrados
+                </h2>
+                <p className={`transition-colors duration-300 ${
+                  isDarkTheme ? 'text-gray-300' : 'text-primary-600'
+                }`}>
+                  Gerencie os clientes cadastrados no sistema
+                </p>
+              </div>
+              <ClientesManager />
+            </TabsContent>
           </div>
         </Tabs>
       </div>
+
+      <Footer />
     </div>
   );
 };

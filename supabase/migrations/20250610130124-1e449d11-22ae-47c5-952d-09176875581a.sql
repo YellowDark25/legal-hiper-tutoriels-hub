@@ -1,4 +1,3 @@
-
 -- Primeiro, vamos verificar se o usuário mestre já existe e corrigir a configuração
 -- Atualizar a função para garantir que o usuário mestre seja sempre marcado como admin
 CREATE OR REPLACE FUNCTION public.handle_admin_user()
@@ -39,3 +38,8 @@ SELECT id, 'Usuário Mestre', true
 FROM auth.users 
 WHERE email = 'nexsyn@unidadelrv.com'
 AND id NOT IN (SELECT id FROM public.profiles);
+
+-- Adicionar FK de comentarios.user_id para profiles.id
+ALTER TABLE public.comentarios
+ADD CONSTRAINT comentarios_user_id_profiles_id_fkey
+FOREIGN KEY (user_id) REFERENCES public.profiles(id);

@@ -40,8 +40,7 @@ const Contato = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-1">Email</h3>
-                      <p className="text-gray-600">suporte@webautomacao.com.br</p>
-                      <p className="text-gray-600">vendas@webautomacao.com.br</p>
+                      <p className="text-gray-600">suporte@nexsyn.com.br</p>
                     </div>
                   </div>
 
@@ -53,8 +52,8 @@ const Contato = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-1">Telefone</h3>
-                      <p className="text-gray-600">(11) 1234-5678</p>
-                      <p className="text-gray-600">(11) 9876-5432</p>
+                      <p className="text-gray-600">(65) 9229-8724</p>
+                      <p className="text-gray-600">(65) 9293-4536</p>
                     </div>
                   </div>
 
@@ -66,8 +65,8 @@ const Contato = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-1">Horário de Atendimento</h3>
-                      <p className="text-gray-600">Segunda a Sexta: 8h às 18h</p>
-                      <p className="text-gray-600">Sábado: 8h às 12h</p>
+                      <p className="text-gray-600">Segunda a Sexta: 8h às 23h</p>
+                      <p className="text-gray-600">Sábado: 8h às 23h</p>
                     </div>
                   </div>
 
@@ -80,8 +79,8 @@ const Contato = () => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-1">Endereço</h3>
-                      <p className="text-gray-600">Rua das Empresas, 123</p>
-                      <p className="text-gray-600">Centro - São Paulo/SP</p>
+                      <p className="text-gray-600">Av. Hitler Sansão</p>
+                      <p className="text-gray-600">Centro - Barra</p>
                       <p className="text-gray-600">CEP: 01234-567</p>
                     </div>
                   </div>
@@ -103,7 +102,7 @@ const Contato = () => {
                     </p>
                     <div className="space-y-2">
                       <a
-                        href="https://www.webautomacao.com.br/site/produtos/pdv-legal/"
+                        href="https://nexsyn.com.br/pdvlegal"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block text-primary hover:text-primary-600 transition-colors"
@@ -127,7 +126,7 @@ const Contato = () => {
                     </p>
                     <div className="space-y-2">
                       <a
-                        href="https://hiper.com.br"
+                        href="https://nexsyn.com.br/hiper"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block text-primary hover:text-primary-600 transition-colors"

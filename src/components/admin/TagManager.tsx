@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { TagIcon, EditIcon, TrashIcon, PlusIcon } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface Tag {
   id: string;
@@ -22,6 +22,8 @@ const TagManager = () => {
   const [showForm, setShowForm] = useState(false);
   const [tagName, setTagName] = useState('');
   const { toast } = useToast();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [tagToDeleteId, setTagToDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTags();
@@ -113,29 +115,53 @@ const TagManager = () => {
     setShowForm(true);
   };
 
-  const deleteTag = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta tag?')) return;
+  const handleDeleteClick = (tagId: string) => {
+    setTagToDeleteId(tagId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteTag = async () => {
+    if (!tagToDeleteId) return;
 
     try {
       const { error } = await supabase
         .from('tags')
         .delete()
-        .eq('id', id);
+        .eq('id', tagToDeleteId);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23503') { // Foreign key violation
+          toast({
+            title: "Erro",
+            description: "Não foi possível excluir a tag pois ela está associada a vídeos existentes.",
+            variant: "destructive",
+          });
+        } else {
+          console.error('Erro ao excluir tag:', error);
+          toast({
+            title: "Erro",
+            description: "Não foi possível excluir a tag",
+            variant: "destructive",
+          });
+        }
+        return; // Prevent further execution on error
+      }
 
-      setTags(tags.filter(tag => tag.id !== id));
+      setTags(tags.filter(tag => tag.id !== tagToDeleteId));
       toast({
         title: "Sucesso",
         description: "Tag excluída com sucesso",
       });
     } catch (error) {
-      console.error('Erro ao excluir tag:', error);
+      console.error('Erro ao excluir tag (catch):', error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir a tag",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setTagToDeleteId(null);
     }
   };
 
@@ -174,7 +200,7 @@ const TagManager = () => {
                   id="nome"
                   value={tagName}
                   onChange={(e) => setTagName(e.target.value)}
-                  placeholder="Ex: básico, avançado, passo-a-passo"
+                  placeholder="Ex: básico, avançado, passo-a-passar"
                   required
                 />
               </div>
@@ -212,14 +238,29 @@ const TagManager = () => {
                   >
                     <EditIcon className="w-3 h-3" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => deleteTag(tag.id)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <TrashIcon className="w-3 h-3" />
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleDeleteClick(tag.id)}
+                      >
+                        <TrashIcon className="w-3 h-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Tem certeza que deseja excluir esta tag?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Essa ação não pode ser desfeita. Isso excluirá permanentemente a tag e seus dados relacionados.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteTag}>Excluir</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             ))}

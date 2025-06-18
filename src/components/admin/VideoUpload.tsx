@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -146,8 +145,18 @@ const VideoUpload = () => {
     setUploadProgress(0);
 
     try {
-      // ID fixo do admin para o sistema
-      const adminUserId = '00000000-0000-0000-0000-000000000001';
+      // Use o ID do usuário autenticado para o campo created_by
+      // O user vem do useAuth() e deve ser o ID do administrador logado.
+      if (!user?.id) {
+        toast({
+          title: "Erro",
+          description: "ID do usuário administrador não encontrado. Faça login novamente.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      const currentUserId = user.id;
       
       // Upload do vídeo
       const videoFileName = `admin/${Date.now()}_${videoFile.name}`;
@@ -178,7 +187,7 @@ const VideoUpload = () => {
           url: publicUrl,
           video_path: videoData.path,
           thumbnail_path: thumbnailPath,
-          created_by: adminUserId // ID fixo do admin
+          created_by: currentUserId // Usar o ID do usuário autenticado
         }])
         .select()
         .single();

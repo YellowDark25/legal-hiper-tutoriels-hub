@@ -1,21 +1,29 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import PDVLegal from "./pages/PDVLegal";
 import Hiper from "./pages/Hiper";
 import Contato from "./pages/Contato";
 import Admin from "./pages/Admin";
-import AdminLogin from "./pages/AdminLogin";
+import AdminChoice from "./pages/AdminChoice";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+// Wrapper para proteger rotas públicas (clientes)
+function ClientProtectedRoute({ children }: { children: JSX.Element }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+  // Se não está logado, redireciona para login
+  if (!user) return <Navigate to="/auth" replace />;
+  return children;
+}
 
 const App: React.FC = () => (
   <QueryClientProvider client={queryClient}>
@@ -25,12 +33,12 @@ const App: React.FC = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/pdvlegal" element={<PDVLegal />} />
-            <Route path="/hiper" element={<Hiper />} />
-            <Route path="/contato" element={<Contato />} />
+            <Route path="/" element={<ClientProtectedRoute><Index /></ClientProtectedRoute>} />
+            <Route path="/pdvlegal" element={<ClientProtectedRoute><PDVLegal /></ClientProtectedRoute>} />
+            <Route path="/hiper" element={<ClientProtectedRoute><Hiper /></ClientProtectedRoute>} />
+            <Route path="/contato" element={<ClientProtectedRoute><Contato /></ClientProtectedRoute>} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/admin-choice" element={<AdminChoice />} />
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

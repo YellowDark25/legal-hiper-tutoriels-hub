@@ -1,4 +1,3 @@
-
 import React from 'react';
 import VideoComments from './VideoComments';
 
@@ -8,7 +7,7 @@ interface Video {
   descricao: string;
   url: string;
   miniatura: string;
-  categoria: string;
+  categoria: string | { nome: string };
   duracao: string;
 }
 
@@ -20,6 +19,11 @@ interface VideoModalProps {
 
 const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   if (!isOpen || !video) return null;
+
+  // Garante que categoria seja sempre string
+  const categoria: string = typeof video.categoria === 'object' && video.categoria !== null && 'nome' in video.categoria
+    ? video.categoria.nome
+    : String(video.categoria);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 animate-fade-in p-4">
@@ -51,7 +55,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
             <div className="p-4">
               <div className="flex items-center gap-4 mb-3">
                 <span className="bg-primary text-white px-3 py-1 rounded-full text-sm">
-                  {video.categoria}
+                  {categoria}
                 </span>
                 <span className="text-gray-600 text-sm">
                   Duração: {video.duracao}

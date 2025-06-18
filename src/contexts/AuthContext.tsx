@@ -1,286 +1,251 @@
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import type { User, Session, AuthError } from '@supabase/supabase-js';
+
+interface Profile {
+  id: string;
+  is_admin: boolean;
+  full_name?: string;
+  theme_preference?: string;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, userData?: object) => Promise<{ error: AuthError | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
-  profile: any;
+  profile: Profile | null;
   updateTheme: (theme: string) => Promise<void>;
+  setIsAdmin: (isAdmin: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Tempo de expiração da sessão em milissegundos (30 minutos)
-const SESSION_TIMEOUT = 30 * 60 * 1000;
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutos
+
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // indica que está processando inicial ou signIn/signOut
   const [isAdmin, setIsAdmin] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-  const [sessionTimer, setSessionTimer] = useState<NodeJS.Timeout | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const sessionTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchProfile = async (userId: string) => {
+  const clearSessionTimer = useCallback(() => {
+    if (sessionTimer.current) {
+      clearTimeout(sessionTimer.current);
+      sessionTimer.current = null;
+    }
+  }, []);
+
+  const signOut = useCallback(async () => {
+    setLoading(true);
+    clearSessionTimer();
     try {
-      console.log('Buscando perfil para usuário:', userId);
-      const { data: profileData, error } = await supabase
+      await supabase.auth.signOut();
+      // Limpar estado
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setIsAdmin(false);
+    } catch (err) {
+      console.error('Erro no signOut:', err);
+    } finally {
+      setLoading(false);
+      // redirecionar
+      window.location.href = '/auth';
+    }
+  }, [clearSessionTimer, setProfile, setIsAdmin, setLoading, setSession, setUser]);
+
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile> => {
+    try {
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-      
+
       if (error) {
-        console.error('Erro ao buscar perfil:', error);
-        // Se não encontrar perfil, criar um básico
-        if (error.code === 'PGRST116') {
-          console.log('Perfil não encontrado, criando perfil básico...');
+        // Se for "not found", crie um perfil padrão
+        if (error.code === 'PGRST116' || /not found/i.test(error.message || '')) {
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert([{ id: userId, is_admin: false }])
             .select()
             .single();
-          
           if (createError) {
-            console.error('Erro ao criar perfil:', createError);
-            return { is_admin: false };
+            console.error('Erro criando perfil padrão:', createError);
+            // Ainda assim, retorne fallback
+            return { id: userId, is_admin: false };
           }
-          
-          console.log('Perfil criado:', newProfile);
-          return newProfile;
+          return newProfile as Profile;
         }
-        return { is_admin: false };
+        console.error('Erro inesperado ao buscar perfil:', error);
+        // fallback
+        return { id: userId, is_admin: false };
       }
-      
-      console.log('Perfil encontrado:', profileData);
-      return profileData;
-    } catch (error) {
-      console.error('Erro inesperado ao buscar perfil:', error);
-      return { is_admin: false };
+      return data as Profile;
+    } catch (err) {
+      console.error('Erro catch ao buscar perfil:', err);
+      // fallback
+      return { id: userId, is_admin: false };
     }
-  };
+  }, []);
 
-  const startSessionTimer = () => {
-    // Limpar timer existente se houver
-    if (sessionTimer) {
-      clearTimeout(sessionTimer);
-    }
-
-    // Criar novo timer
-    const timer = setTimeout(async () => {
-      console.log('Sessão expirada. Fazendo logout automático...');
+  const startSessionTimer = useCallback(() => {
+    clearSessionTimer();
+    sessionTimer.current = setTimeout(async () => {
+      console.log('Sessão expirou, fazendo logout automático');
       await signOut();
-      
-      // Mostrar mensagem para o usuário
-      if (window.location.pathname !== '/admin-login') {
-        alert('Sua sessão expirou. Você será redirecionado para a página de login.');
-        window.location.href = '/admin-login';
-      }
+      alert('Sua sessão expirou. Você será redirecionado para login.');
     }, SESSION_TIMEOUT);
+  }, [SESSION_TIMEOUT, clearSessionTimer, signOut]);
 
-    setSessionTimer(timer);
-    console.log(`Timer de sessão iniciado. Expira em ${SESSION_TIMEOUT / 1000 / 60} minutos.`);
-  };
-
-  const clearSessionTimer = () => {
-    if (sessionTimer) {
-      clearTimeout(sessionTimer);
-      setSessionTimer(null);
-      console.log('Timer de sessão limpo.');
+  const signIn = useCallback(async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        console.error('Erro no signIn:', error);
+        setLoading(false); // Explicitly set loading false on signIn error
+        return { error };
+      }
+      // Se não houve erro, o listener onAuthStateChange será chamado.
+      return { error: null };
+    } catch (err) {
+      console.error('Erro catch signIn:', err);
+      setLoading(false); // Explicitly set loading false on signIn catch error
+      return { error: { message: 'Erro desconhecido' } as AuthError };
     }
-  };
+  }, []);
+
+  const updateTheme = useCallback(async (theme: string) => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ theme_preference: theme })
+        .eq('id', user.id);
+      if (!error && profile) {
+        setProfile({ ...profile, theme_preference: theme });
+      }
+    } catch (err) {
+      console.error('Erro updateTheme:', err);
+    }
+  }, [user, profile]);
 
   useEffect(() => {
     let mounted = true;
 
-    // Função para processar mudanças de autenticação
-    const handleAuthChange = async (event: string, session: Session | null) => {
+    const handleAuthEvent = async (session: Session | null) => {
       if (!mounted) return;
-
-      console.log('Auth state changed:', event, session?.user?.email);
-      
       setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        console.log('Usuário logado, buscando perfil...');
-        const profileData = await fetchProfile(session.user.id);
-        
-        if (mounted) {
-          console.log('Configurando perfil:', profileData);
-          setProfile(profileData);
-          setIsAdmin(profileData?.is_admin || false);
-          
-          // Iniciar timer de sessão apenas se for admin
-          if (profileData?.is_admin) {
-            console.log('Usuário é admin, iniciando timer de sessão');
+
+      const currentUser = session?.user;
+      // Log the actual user object received from Supabase
+      console.log('AuthContext: Raw currentUser from session:', currentUser);
+
+      // Check if currentUser is a non-empty object with an ID
+      if (currentUser && typeof currentUser === 'object' && Object.keys(currentUser).length > 0 && currentUser.id) {
+        setUser(currentUser);
+        try {
+          const prof = await fetchProfile(currentUser.id);
+          if (!mounted) return; // Component unmounted during async operation
+          setProfile(prof);
+          setIsAdmin(!!prof.is_admin);
+          if (prof.is_admin) {
             startSessionTimer();
+          } else {
+            clearSessionTimer(); // Clear timer if user is not admin
           }
-          
-          console.log('Finalizando loading do auth');
-          setLoading(false);
-        }
-      } else {
-        if (mounted) {
-          console.log('Usuário deslogado, limpando estado');
+        } catch (err) {
+          console.error('AuthContext: Error fetching profile for existing user:', err);
+          setUser(null); // Explicitly clear user if profile fetch fails
           setProfile(null);
           setIsAdmin(false);
           clearSessionTimer();
-          setLoading(false);
         }
+      } else {
+        // No session, user logged out, or invalid/empty user object
+        console.log('AuthContext: Invalid or no user in session, setting user to null.');
+        setUser(null);
+        setProfile(null);
+        setIsAdmin(false);
+        clearSessionTimer();
       }
+      setLoading(false); // Crucial: ensure loading is false after processing auth state
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthChange);
+    // 1) Listener para mudanças de auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        console.log('⚡ onAuthStateChange event:', _event, newSession);
+        handleAuthEvent(newSession);
+      }
+    );
 
-    // Check for existing session
-    const getInitialSession = async () => {
+    // 2) Recuperar sessão inicial
+    (async () => {
+      console.log('🔍 Verificando sessão inicial em AuthProvider...');
       try {
-        console.log('Verificando sessão existente...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Erro ao buscar sessão:', error);
-          if (mounted) setLoading(false);
-          return;
-        }
-
-        console.log('Sessão inicial:', session?.user?.email || 'nenhuma');
-
-        if (!mounted) return;
-
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          console.log('Sessão existente encontrada, buscando perfil...');
-          const profileData = await fetchProfile(session.user.id);
-          
-          if (mounted) {
-            console.log('Configurando perfil da sessão existente:', profileData);
-            setProfile(profileData);
-            setIsAdmin(profileData?.is_admin || false);
-            
-            // Iniciar timer de sessão apenas se for admin
-            if (profileData?.is_admin) {
-              console.log('Usuário é admin, iniciando timer de sessão');
-              startSessionTimer();
-            }
-            
-            console.log('Finalizando loading da sessão existente');
-            setLoading(false);
-          }
+          console.error('AuthContext: Erro getSession inicial:', error);
+          // If there's an error getting initial session, treat as no session
+          handleAuthEvent(null);
         } else {
-          if (mounted) {
-            console.log('Nenhuma sessão existente, finalizando loading');
-            setLoading(false);
-          }
+          handleAuthEvent(initialSession); // Process initial session or null
         }
-      } catch (error) {
-        console.error('Erro inesperado ao verificar sessão:', error);
-        if (mounted) {
-          setLoading(false);
-        }
+      } catch (err) {
+        console.error('AuthContext: Erro catch ao verificar sessão inicial:', err);
+        handleAuthEvent(null); // Handle unexpected errors by treating as no session
       }
-    };
-
-    getInitialSession();
+    })();
 
     return () => {
       mounted = false;
       clearSessionTimer();
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile, startSessionTimer, clearSessionTimer, signOut]);
 
-  // Renovar timer em atividades do usuário
+  // 3) Opcional: renova timer em atividade do usuário
   useEffect(() => {
-    const renewTimer = () => {
-      if (user && isAdmin) {
-        startSessionTimer();
-      }
+    const events = ['mousedown','mousemove','keypress','scroll','touchstart','click'];
+    const renew = () => {
+      if (user && isAdmin) startSessionTimer();
     };
-
-    // Eventos que renovam o timer
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
-    events.forEach(event => {
-      document.addEventListener(event, renewTimer, true);
-    });
-
+    events.forEach(e => document.addEventListener(e, renew, true));
     return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, renewTimer, true);
-      });
+      events.forEach(e => document.removeEventListener(e, renew, true));
     };
-  }, [user, isAdmin]);
+  }, [user, isAdmin, startSessionTimer]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const signUp = async (email: string, password: string, userData?: any) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: userData,
-        emailRedirectTo: `${window.location.origin}/`
-      }
-    });
-    return { error };
-  };
-
-  const signIn = async (email: string, password: string) => {
-    console.log('Iniciando login para:', email);
-    
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    
-    if (error) {
-      console.error('Erro no signIn:', error);
+  const signUp = useCallback(async (email: string, password: string, userData?: object) => {
+    setLoading(true); // Set loading true on action start
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: userData, emailRedirectTo: `${window.location.origin}/` }
+      });
+      return { error };
+    } catch (err) {
+      console.error('Erro signUp:', err);
+      return { error: { message: 'Erro desconhecido' } as AuthError };
+    } finally {
+      // Let onAuthStateChange listener handle setLoading(false)
     }
-    
-    return { error };
-  };
-
-  const signOut = async () => {
-    setLoading(true);
-    clearSessionTimer();
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-    setIsAdmin(false);
-    setLoading(false);
-  };
-
-  const updateTheme = async (theme: string) => {
-    if (!user) return;
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({ theme_preference: theme })
-      .eq('id', user.id);
-    
-    if (!error && profile) {
-      setProfile({ ...profile, theme_preference: theme });
-    }
-  };
+  }, []);
 
   const value = {
     user,
@@ -292,7 +257,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin,
     profile,
     updateTheme,
+    setIsAdmin,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={value}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };

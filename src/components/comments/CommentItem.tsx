@@ -1,9 +1,19 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ReplyIcon, TrashIcon } from 'lucide-react';
 import CommentForm from './CommentForm';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
 
 interface Comment {
   id: string;
@@ -25,6 +35,7 @@ interface CommentItemProps {
   onDelete: (commentId: string) => void;
   loading?: boolean;
   showReplyButton?: boolean;
+  isAdmin?: boolean;
 }
 
 const formatDate = (dateString: string) => {
@@ -43,9 +54,11 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onReply,
   onDelete,
   loading = false,
-  showReplyButton = true
+  showReplyButton = true,
+  isAdmin = false
 }) => {
   const [isReplying, setIsReplying] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
 
   const handleReply = async (content: string) => {
     const success = await onReply(comment.id, content);
@@ -56,9 +69,8 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   const handleDelete = () => {
-    if (confirm('Tem certeza que deseja excluir este comentário?')) {
-      onDelete(comment.id);
-    }
+    onDelete(comment.id);
+    setOpenDialog(false);
   };
 
   return (
@@ -71,14 +83,29 @@ const CommentItem: React.FC<CommentItemProps> = ({
             </p>
             <p className="text-sm text-gray-500">{formatDate(comment.created_at)}</p>
           </div>
-          {currentUserId === comment.user_id && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDelete}
-            >
-              <TrashIcon className="w-4 h-4" />
-            </Button>
+          {isAdmin && (
+            <AlertDialog open={openDialog} onOpenChange={setOpenDialog}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                >
+                  <TrashIcon className="w-4 h-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir comentário</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Tem certeza que deseja excluir este comentário? Esta ação não poderá ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} autoFocus>Excluir</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
         
@@ -119,7 +146,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
                     </p>
                     <p className="text-xs text-gray-500">{formatDate(reply.created_at)}</p>
                   </div>
-                  {currentUserId === reply.user_id && (
+                  {isAdmin && (
                     <Button
                       variant="ghost"
                       size="sm"

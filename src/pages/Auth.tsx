@@ -1,361 +1,236 @@
-
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, ShieldCheck, UserPlus } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
+const ADMIN_ID = 'c53793c5-8cc0-4d15-8315-7a3d95ba252d';
 
 const Auth = () => {
-  const [loading, setLoading] = useState(false);
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [signupData, setSignupData] = useState({ 
-    email: '', 
-    password: '', 
-    confirmPassword: '',
-    fullName: ''
+  const [isLogin, setIsLogin] = useState(true);
+  const [form, setForm] = useState({
+    cnpj: '',
+    nome_fantasia: '',
+    sistema: '',
+    email: '',
+    senha: '',
+    cidade: '',
+    estado: '',
   });
-  const [inviteToken, setInviteToken] = useState<string | null>(null);
-  const [inviteEmail, setInviteEmail] = useState<string>('');
-  
-  const { signIn, signUp, user } = useAuth();
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const { setIsAdmin } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
-  useEffect(() => {
-    // Se já estiver logado, redirecionar
-    if (user) {
-      navigate('/');
-      return;
-    }
-
-    // Verificar se há um token de convite na URL
-    const invite = searchParams.get('invite');
-    if (invite) {
-      validateInvite(invite);
-    }
-  }, [user, navigate, searchParams]);
-
-  const validateInvite = async (token: string) => {
-    const { data, error } = await supabase
-      .from('invite_tokens')
-      .select('*')
-      .eq('token', token)
-      .eq('used', false)
-      .single();
-
-    if (error || !data) {
-      toast({
-        title: "Convite inválido",
-        description: "Este convite não é válido ou já foi usado.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const now = new Date();
-    const expiresAt = new Date(data.expires_at);
-
-    if (now > expiresAt) {
-      toast({
-        title: "Convite expirado",
-        description: "Este convite expirou. Solicite um novo convite.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setInviteToken(token);
-    setInviteEmail(data.email);
-    setSignupData(prev => ({ ...prev, email: data.email }));
-    
-    toast({
-      title: "Convite válido!",
-      description: `Bem-vindo! Complete seu cadastro para ${data.email}`,
-    });
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
+  // Autocompletar CNPJ usando BrasilAPI
+  const handleCnpjAutocomplete = async () => {
+    setError('');
+    setSuccess('');
+    if (!form.cnpj) return;
     try {
-      const { error } = await signIn(loginData.email, loginData.password);
-      
-      if (error) {
-        toast({
-          title: "Erro no login",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo de volta.",
-        });
-        navigate('/');
-      }
-    } catch (error) {
-      toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um erro durante o login.",
-        variant: "destructive",
-      });
+      setLoading(true);
+      const cnpj = form.cnpj.replace(/\D/g, '');
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+      if (!res.ok) throw new Error('CNPJ não encontrado');
+      const data = await res.json();
+      setForm((prev) => ({
+        ...prev,
+        nome_fantasia: data.fantasia || data.razao_social || '',
+        cidade: data.municipio || '',
+        estado: data.uf || '',
+      }));
+      setSuccess('Dados do CNPJ preenchidos!');
+    } catch (err: any) {
+      setError('Não foi possível buscar dados do CNPJ.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  // Cadastro de cliente
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (signupData.password !== signupData.confirmPassword) {
-      toast({
-        title: "Erro",
-        description: "As senhas não coincidem.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (signupData.password.length < 6) {
-      toast({
-        title: "Erro",
-        description: "A senha deve ter pelo menos 6 caracteres.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    setError('');
+    setSuccess('');
     setLoading(true);
-
     try {
-      const { error } = await signUp(signupData.email, signupData.password, {
-        full_name: signupData.fullName
+      // 1. Cria usuário no Supabase Auth (sem confirmação de e-mail)
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.senha,
       });
-      
-      if (error) {
-        toast({
-          title: "Erro no cadastro",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        // Se há um token de convite, marcar como usado
-        if (inviteToken) {
-          await supabase
-            .from('invite_tokens')
-            .update({ used: true })
-            .eq('token', inviteToken);
-        }
+      if (signUpError) throw signUpError;
+      // 1.5. Faz login automático para garantir autenticação
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.senha,
+      });
+      if (signInError) throw signInError;
+      // 2. Salva dados na nova tabela cadastro_empresa
+      const { error: insertError } = await supabase.from('cadastro_empresa').insert({
+        cnpj: form.cnpj,
+        nome_fantasia: form.nome_fantasia,
+        sistema: form.sistema,
+        cidade: form.cidade,
+        estado: form.estado,
+        email: form.email,
+      });
+      if (insertError) throw insertError;
+      setSuccess('Cadastro realizado com sucesso! Faça login para acessar.');
+      setIsLogin(true); // Redireciona para tela de login
+    } catch (err: any) {
+      setError(err.message || 'Erro ao cadastrar.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        toast({
-          title: "Cadastro realizado com sucesso!",
-          description: inviteToken 
-            ? "Sua conta de administrador foi criada com sucesso!"
-            : "Verifique seu email para confirmar a conta.",
-        });
-        
-        if (inviteToken) {
-          navigate('/admin');
-        }
-      }
-    } catch (error) {
-      toast({
-        title: "Erro inesperado",
-        description: "Ocorreu um erro durante o cadastro.",
-        variant: "destructive",
+  // Login de cliente ou admin
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email: form.email,
+        password: form.senha,
       });
+      if (loginError) throw loginError;
+      // Buscar perfil do usuário logado
+      const userId = data.user?.id;
+      if (!userId) throw new Error('Usuário não encontrado.');
+      // Buscar perfil no banco
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .single();
+      if (profileError) throw profileError;
+      if (profile?.is_admin) {
+        setIsAdmin(true);
+        setSuccess('Login de administrador realizado!');
+        navigate('/admin-choice');
+        return;
+      } else {
+        setIsAdmin(false);
+        setSuccess('Login realizado!');
+        navigate('/');
+        return;
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erro ao fazer login.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center px-4">
-      <Card className="w-full max-w-md shadow-2xl border-0">
-        <CardHeader className="text-center bg-primary-900 text-neutral-50 rounded-t-lg">
-          <div className="flex items-center justify-center mb-4">
-            <div className="bg-secondary p-3 rounded-full">
-              {inviteToken ? (
-                <UserPlus className="w-8 h-8 text-neutral-50" />
-              ) : (
-                <ShieldCheck className="w-8 h-8 text-neutral-50" />
-              )}
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">
-            {inviteToken ? 'Aceitar Convite' : 'NexHub Admin'}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-100 to-neutral-200">
+      <Card className="w-full max-w-md shadow-xl">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">
+            {isLogin ? 'Login do Cliente' : 'Cadastro de Cliente'}
           </CardTitle>
-          <p className="text-primary-200 text-sm mt-2">
-            {inviteToken 
-              ? `Complete seu cadastro para ${inviteEmail}`
-              : 'Acesso para administradores'
-            }
-          </p>
         </CardHeader>
-        <CardContent className="p-8 bg-neutral-50">
-          {inviteToken ? (
-            // Formulário de cadastro para convite
-            <form onSubmit={handleSignup} className="space-y-4">
-              <div>
-                <Label htmlFor="fullName">Nome Completo</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={signupData.fullName}
-                  onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
-                  required
-                  className="border-primary-200 focus:border-secondary focus:ring-secondary"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signupEmail">Email</Label>
-                <Input
-                  id="signupEmail"
-                  type="email"
-                  value={signupData.email}
-                  disabled
-                  className="bg-gray-100 border-primary-200"
-                />
-              </div>
-              <div>
-                <Label htmlFor="signupPassword">Senha</Label>
-                <Input
-                  id="signupPassword"
-                  type="password"
-                  value={signupData.password}
-                  onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                  required
-                  className="border-primary-200 focus:border-secondary focus:ring-secondary"
-                />
-              </div>
-              <div>
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={signupData.confirmPassword}
-                  onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                  required
-                  className="border-primary-200 focus:border-secondary focus:ring-secondary"
-                />
-              </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-secondary hover:bg-secondary-600 text-neutral-50" 
-                disabled={loading}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Aceitar Convite e Cadastrar
-              </Button>
-            </form>
-          ) : (
-            // Sistema de login/cadastro normal
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Cadastro</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <Label htmlFor="email">Email</Label>
+        <CardContent>
+          <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-6">
+            {!isLogin && (
+              <>
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Label htmlFor="cnpj">CNPJ *</Label>
                     <Input
-                      id="email"
-                      type="email"
-                      value={loginData.email}
-                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                      id="cnpj"
+                      value={form.cnpj}
+                      onChange={(e) => setForm((prev) => ({ ...prev, cnpj: e.target.value }))}
                       required
-                      className="border-primary-200 focus:border-secondary focus:ring-secondary"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="password">Senha</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      required
-                      className="border-primary-200 focus:border-secondary focus:ring-secondary"
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-secondary hover:bg-secondary-600 text-neutral-50" 
-                    disabled={loading}
-                  >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Entrar
+                  <Button type="button" onClick={handleCnpjAutocomplete} disabled={loading}>
+                    Autocompletar
                   </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div>
-                    <Label htmlFor="fullName">Nome Completo</Label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      value={signupData.fullName}
-                      onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
-                      className="border-primary-200 focus:border-secondary focus:ring-secondary"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="signupEmail">Email</Label>
-                    <Input
-                      id="signupEmail"
-                      type="email"
-                      value={signupData.email}
-                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                      required
-                      className="border-primary-200 focus:border-secondary focus:ring-secondary"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="signupPassword">Senha</Label>
-                    <Input
-                      id="signupPassword"
-                      type="password"
-                      value={signupData.password}
-                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                      required
-                      className="border-primary-200 focus:border-secondary focus:ring-secondary"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={signupData.confirmPassword}
-                      onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                      required
-                      className="border-primary-200 focus:border-secondary focus:ring-secondary"
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-secondary hover:bg-secondary-600 text-neutral-50" 
-                    disabled={loading}
+                </div>
+                <div>
+                  <Label htmlFor="nome_fantasia">Nome da Empresa *</Label>
+                  <Input
+                    id="nome_fantasia"
+                    value={form.nome_fantasia}
+                    onChange={(e) => setForm((prev) => ({ ...prev, nome_fantasia: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="sistema">Sistema *</Label>
+                  <Select
+                    value={form.sistema}
+                    onValueChange={(value) => setForm((prev) => ({ ...prev, sistema: value }))}
                   >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Cadastrar
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          )}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o sistema" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdvlegal">PDV Legal</SelectItem>
+                      <SelectItem value="hiper">Hiper</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Label htmlFor="cidade">Cidade</Label>
+                    <Input
+                      id="cidade"
+                      value={form.cidade}
+                      onChange={(e) => setForm((prev) => ({ ...prev, cidade: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Label htmlFor="estado">Estado</Label>
+                    <Input
+                      id="estado"
+                      value={form.estado}
+                      onChange={(e) => setForm((prev) => ({ ...prev, estado: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+            <div>
+              <Label htmlFor="email">E-mail *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="senha">Senha *</Label>
+              <Input
+                id="senha"
+                type="password"
+                value={form.senha}
+                onChange={(e) => setForm((prev) => ({ ...prev, senha: e.target.value }))}
+                required
+              />
+            </div>
+            {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+            {success && <div className="text-green-600 text-sm text-center">{success}</div>}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Aguarde...' : isLogin ? 'Entrar' : 'Cadastrar'}
+            </Button>
+          </form>
+          <div className="mt-6 text-center">
+            <Button variant="link" type="button" onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }}>
+              {isLogin ? 'Não tem cadastro? Cadastre-se' : 'Já tem cadastro? Faça login'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

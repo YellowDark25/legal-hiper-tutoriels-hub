@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { MessageCircleIcon } from 'lucide-react';
@@ -11,7 +10,7 @@ interface VideoCommentsProps {
 }
 
 const VideoComments: React.FC<VideoCommentsProps> = ({ videoId }) => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { comments, loading, addComment, deleteComment } = useVideoComments(videoId);
 
   const handleAddComment = async (content: string) => {
@@ -26,7 +25,7 @@ const VideoComments: React.FC<VideoCommentsProps> = ({ videoId }) => {
 
   const handleDelete = (commentId: string) => {
     if (!user) return;
-    deleteComment(commentId, user.id);
+    deleteComment(commentId, user.id, isAdmin);
   };
 
   return (
@@ -52,6 +51,7 @@ const VideoComments: React.FC<VideoCommentsProps> = ({ videoId }) => {
             onReply={handleReply}
             onDelete={handleDelete}
             loading={loading}
+            isAdmin={isAdmin}
           />
         ))}
       </div>

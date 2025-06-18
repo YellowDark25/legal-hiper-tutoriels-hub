@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EditIcon, TrashIcon, EyeIcon, SearchIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { ImageIcon, VideoIcon } from 'lucide-react';
 
 interface Video {
   id: string;
@@ -23,6 +27,19 @@ interface Video {
   created_at: string;
 }
 
+// Função utilitária para obter a URL pública da miniatura
+function getThumbnailUrl(video: any): string {
+  if (video.thumbnail_path) {
+    // Gera a URL pública do Supabase Storage para thumbnails
+    const { data } = supabase.storage.from('thumbnails').getPublicUrl(video.thumbnail_path);
+    return data?.publicUrl || '/placeholder.svg';
+  }
+  if (video.miniatura) {
+    return video.miniatura;
+  }
+  return '/placeholder.svg';
+}
+
 const VideoManager = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +47,16 @@ const VideoManager = () => {
   const [filterSistema, setFilterSistema] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const { toast } = useToast();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [videoToDeleteId, setVideoToDeleteId] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [videoToEdit, setVideoToEdit] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState<any>(null);
+  const [editCategories, setEditCategories] = useState<any[]>([]);
+  const [editTags, setEditTags] = useState<any[]>([]);
+  const [editSelectedTags, setEditSelectedTags] = useState<string[]>([]);
+  const [editThumbnailFile, setEditThumbnailFile] = useState<File | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     fetchVideos();
@@ -59,29 +86,45 @@ const VideoManager = () => {
     }
   };
 
-  const deleteVideo = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este vídeo?')) return;
+  const handleDeleteClick = (videoId: string) => {
+    setVideoToDeleteId(videoId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteVideo = async () => {
+    if (!videoToDeleteId) return;
 
     try {
       const { error } = await supabase
         .from('videos')
         .delete()
-        .eq('id', id);
+        .eq('id', videoToDeleteId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao excluir vídeo:', error);
+        toast({
+          title: "Erro",
+          description: "Não foi possível excluir o vídeo",
+          variant: "destructive",
+        });
+        return; // Prevent further execution on error
+      }
 
-      setVideos(videos.filter(video => video.id !== id));
+      setVideos(videos.filter(video => video.id !== videoToDeleteId));
       toast({
         title: "Sucesso",
         description: "Vídeo excluído com sucesso",
       });
     } catch (error) {
-      console.error('Erro ao excluir vídeo:', error);
+      console.error('Erro ao excluir vídeo (catch):', error);
       toast({
         title: "Erro",
         description: "Não foi possível excluir o vídeo",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setVideoToDeleteId(null);
     }
   };
 
@@ -122,6 +165,95 @@ const VideoManager = () => {
     
     return matchesSearch && matchesSistema && matchesStatus;
   });
+
+  // Função para abrir modal de edição
+  const openEditDialog = async (video: any) => {
+    setVideoToEdit(video);
+    setEditForm({
+      titulo: video.titulo || '',
+      descricao: video.descricao || '',
+      categoria_id: video.categoria_id || '',
+      duracao: video.duracao || '',
+      sistema: video.sistema || '',
+      status: video.status || 'rascunho',
+    });
+    setEditSelectedTags([]);
+    setEditThumbnailFile(null);
+    setEditLoading(false);
+    // Buscar categorias e tags
+    const [{ data: cats }, { data: tgs }] = await Promise.all([
+      supabase.from('categorias').select('*').order('nome'),
+      supabase.from('tags').select('*').order('nome'),
+    ]);
+    setEditCategories(cats || []);
+    setEditTags(tgs || []);
+    // Buscar tags do vídeo
+    const { data: videoTags } = await supabase
+      .from('video_tags')
+      .select('tag_id')
+      .eq('video_id', video.id);
+    setEditSelectedTags((videoTags || []).map((vt: any) => vt.tag_id));
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditInputChange = (field: string, value: string) => {
+    setEditForm((prev: any) => ({ ...prev, [field]: value }));
+  };
+  const handleEditTagToggle = (tagId: string) => {
+    setEditSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!videoToEdit) return;
+    setEditLoading(true);
+    try {
+      let thumbnailPath = videoToEdit.thumbnail_path || null;
+      // Upload da miniatura se fornecida
+      if (editThumbnailFile) {
+        const thumbnailFileName = `admin/${Date.now()}_${editThumbnailFile.name}`;
+        const { error: thumbError } = await supabase.storage
+          .from('thumbnails')
+          .upload(thumbnailFileName, editThumbnailFile, { upsert: true });
+        if (thumbError) throw thumbError;
+        thumbnailPath = thumbnailFileName;
+      }
+      // Atualizar vídeo
+      const { error: updateError } = await supabase
+        .from('videos')
+        .update({
+          ...editForm,
+          thumbnail_path: thumbnailPath,
+        })
+        .eq('id', videoToEdit.id);
+      if (updateError) throw updateError;
+      // Atualizar tags (remover todas e inserir as novas)
+      await supabase.from('video_tags').delete().eq('video_id', videoToEdit.id);
+      if (editSelectedTags.length > 0) {
+        const videoTagsData = editSelectedTags.map((tagId) => ({
+          video_id: videoToEdit.id,
+          tag_id: tagId,
+        }));
+        const { error: tagsError } = await supabase.from('video_tags').insert(videoTagsData);
+        if (tagsError) throw tagsError;
+      }
+      // Atualizar lista local
+      fetchVideos();
+      toast({ title: 'Sucesso', description: 'Vídeo atualizado com sucesso' });
+      setIsEditDialogOpen(false);
+      setVideoToEdit(null);
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível atualizar o vídeo',
+        variant: 'destructive',
+      });
+    } finally {
+      setEditLoading(false);
+    }
+  };
 
   if (loading) {
     return <div className="flex justify-center p-8">Carregando vídeos...</div>;
@@ -171,7 +303,7 @@ const VideoManager = () => {
               <div className="flex gap-4">
                 <div className="flex-shrink-0">
                   <img
-                    src={video.miniatura || '/placeholder.svg'}
+                    src={getThumbnailUrl(video)}
                     alt={video.titulo}
                     className="w-32 h-20 object-cover rounded"
                   />
@@ -219,16 +351,32 @@ const VideoManager = () => {
                       >
                         {video.status === 'ativo' ? 'Desativar' : 'Ativar'}
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" size="sm" onClick={() => openEditDialog(video)}>
                         <EditIcon className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => deleteVideo(video.id)}
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDeleteClick(video.id)}
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Tem certeza que deseja excluir este vídeo?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Essa ação não pode ser desfeita. Isso excluirá permanentemente o vídeo e seus dados relacionados.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDeleteVideo}>Excluir</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>
@@ -243,6 +391,135 @@ const VideoManager = () => {
           Nenhum vídeo encontrado
         </div>
       )}
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Vídeo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-titulo">Título *</Label>
+                  <Input
+                    id="edit-titulo"
+                    value={editForm?.titulo || ''}
+                    onChange={(e) => handleEditInputChange('titulo', e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-thumbnail-file">Miniatura (Opcional)</Label>
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5 text-gray-400" />
+                    <Input
+                      id="edit-thumbnail-file"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={(e) => setEditThumbnailFile(e.target.files?.[0] || null)}
+                    />
+                  </div>
+                  {editThumbnailFile && (
+                    <p className="text-sm text-gray-600 mt-1">Arquivo selecionado: {editThumbnailFile.name}</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="edit-duracao">Duração</Label>
+                  <Input
+                    id="edit-duracao"
+                    value={editForm?.duracao || ''}
+                    onChange={(e) => handleEditInputChange('duracao', e.target.value)}
+                    placeholder="Ex: 5:30"
+                  />
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-sistema">Sistema *</Label>
+                  <Select
+                    value={editForm?.sistema || ''}
+                    onValueChange={(value) => handleEditInputChange('sistema', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o sistema" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdvlegal">PDV Legal</SelectItem>
+                      <SelectItem value="hiper">Hiper</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-categoria">Categoria</Label>
+                  <Select
+                    value={editForm?.categoria_id || ''}
+                    onValueChange={(value) => handleEditInputChange('categoria_id', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {editCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select
+                    value={editForm?.status || 'rascunho'}
+                    onValueChange={(value) => handleEditInputChange('status', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rascunho">Rascunho</SelectItem>
+                      <SelectItem value="ativo">Ativo</SelectItem>
+                      <SelectItem value="inativo">Inativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Tags</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto">
+                    {editTags.map((tag) => (
+                      <label key={tag.id} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editSelectedTags.includes(tag.id)}
+                          onChange={() => handleEditTagToggle(tag.id)}
+                          className="rounded"
+                        />
+                        <span className="text-sm">{tag.nome}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-descricao">Descrição</Label>
+              <Textarea
+                id="edit-descricao"
+                value={editForm?.descricao || ''}
+                onChange={(e) => handleEditInputChange('descricao', e.target.value)}
+                rows={4}
+                placeholder="Descrição do vídeo..."
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" disabled={editLoading} className="w-full">
+                {editLoading ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

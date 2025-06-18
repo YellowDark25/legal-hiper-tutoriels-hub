@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -97,13 +96,13 @@ export const useVideoComments = (videoId: string) => {
     }
   };
 
-  const deleteComment = async (commentId: string, userId: string) => {
+  const deleteComment = async (commentId: string, userId: string, isAdmin?: boolean) => {
     try {
-      const { error } = await supabase
-        .from('comentarios')
-        .delete()
-        .eq('id', commentId)
-        .eq('user_id', userId);
+      let query = supabase.from('comentarios').delete().eq('id', commentId);
+      if (!isAdmin) {
+        query = query.eq('user_id', userId);
+      }
+      const { error } = await query;
 
       if (error) throw error;
 
