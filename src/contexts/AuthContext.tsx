@@ -20,6 +20,7 @@ interface AuthContextType {
   profile: Profile | null;
   updateTheme: (theme: string) => Promise<void>;
   setIsAdmin: (isAdmin: boolean) => void;
+  userSystem: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true); // indica que está processando inicial ou signIn/signOut
   const [isAdmin, setIsAdmin] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userSystem, setUserSystem] = useState<string | null>(null);
   const sessionTimer = useRef<NodeJS.Timeout | null>(null);
 
   const clearSessionTimer = useCallback(() => {
@@ -52,19 +54,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearSessionTimer();
     try {
       await supabase.auth.signOut();
-      // Limpar estado
+      // Limpar estado local
       setUser(null);
       setSession(null);
       setProfile(null);
       setIsAdmin(false);
+      setUserSystem(null);
     } catch (err) {
       console.error('Erro no signOut:', err);
     } finally {
       setLoading(false);
-      // redirecionar
-      window.location.href = '/auth';
+      // NÃO FORÇAR REDIRECIONAMENTO GLOBAL - permite múltiplas abas
+      // window.location.href = '/auth';
     }
-  }, [clearSessionTimer, setProfile, setIsAdmin, setLoading, setSession, setUser]);
+  }, [clearSessionTimer]);
+
+  const fetchUserSystem = useCallback(async (userEmail: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('cadastro_empresa')
+        .select('sistema')
+        .eq('email', userEmail)
+        .single();
+
+      if (error) {
+        // Se não encontrar na tabela cadastro_empresa, pode ser admin ou usuário sem sistema
+        console.log('Usuário não encontrado na tabela cadastro_empresa (pode ser admin):', error.message);
+        return null;
+      }
+
+      console.log('Sistema encontrado para o usuário:', data?.sistema);
+      return data?.sistema || null;
+    } catch (err) {
+      console.error('Erro ao buscar sistema do usuário:', err);
+      return null;
+    }
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile> => {
     try {
@@ -162,6 +187,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!mounted) return; // Component unmounted during async operation
           setProfile(prof);
           setIsAdmin(!!prof.is_admin);
+          
+          // Buscar sistema do usuário se não for admin
+          if (!prof.is_admin && currentUser.email) {
+            const sistema = await fetchUserSystem(currentUser.email);
+            setUserSystem(sistema);
+            console.log('Sistema do usuário:', sistema);
+          } else {
+            setUserSystem(null); // Admins não têm sistema específico
+          }
+          
           if (prof.is_admin) {
             startSessionTimer();
           } else {
@@ -172,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null); // Explicitly clear user if profile fetch fails
           setProfile(null);
           setIsAdmin(false);
+          setUserSystem(null);
           clearSessionTimer();
         }
       } else {
@@ -180,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setProfile(null);
         setIsAdmin(false);
+        setUserSystem(null);
         clearSessionTimer();
       }
       setLoading(false); // Crucial: ensure loading is false after processing auth state
@@ -216,7 +253,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearSessionTimer();
       subscription.unsubscribe();
     };
-  }, [fetchProfile, startSessionTimer, clearSessionTimer, signOut]);
+  }, [fetchProfile, fetchUserSystem, startSessionTimer, clearSessionTimer, signOut]);
 
   // 3) Opcional: renova timer em atividade do usuário
   useEffect(() => {
@@ -258,6 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     updateTheme,
     setIsAdmin,
+    userSystem,
   };
 
   return (

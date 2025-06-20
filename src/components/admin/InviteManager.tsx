@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,8 +24,6 @@ const InviteManager = () => {
   const [newInviteEmail, setNewInviteEmail] = useState('');
   const { toast } = useToast();
   const { profile } = useAuth();
-
-  const isDarkTheme = profile?.theme_preference === 'dark';
 
   useEffect(() => {
     fetchInvites();
@@ -146,22 +143,16 @@ const InviteManager = () => {
   return (
     <div className="space-y-6">
       {/* Formulário para novo convite */}
-      <Card className={`transition-colors duration-300 ${
-        isDarkTheme ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
-      }`}>
+      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
         <CardHeader>
-          <CardTitle className={`transition-colors duration-300 ${
-            isDarkTheme ? 'text-neutral-50' : 'text-primary-900'
-          }`}>
+          <CardTitle className="text-white">
             Gerar Novo Convite
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={generateInvite} className="flex gap-4">
             <div className="flex-1">
-              <Label htmlFor="email" className={`transition-colors duration-300 ${
-                isDarkTheme ? 'text-gray-300' : 'text-primary-800'
-              }`}>
+              <Label htmlFor="email" className="text-white">
                 Email do novo administrador
               </Label>
               <Input
@@ -171,18 +162,14 @@ const InviteManager = () => {
                 onChange={(e) => setNewInviteEmail(e.target.value)}
                 placeholder="admin@exemplo.com"
                 required
-                className={`mt-1 transition-colors duration-300 ${
-                  isDarkTheme 
-                    ? 'bg-gray-600 border-gray-500 text-neutral-50 placeholder:text-gray-400'
-                    : 'border-primary-200 focus:border-secondary focus:ring-secondary'
-                }`}
+                className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
               />
             </div>
             <div className="flex items-end">
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="bg-secondary hover:bg-secondary-600 text-neutral-50"
+                className="bg-orange-500 hover:bg-orange-600 text-white"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Send className="w-4 h-4 mr-2" />
@@ -194,21 +181,15 @@ const InviteManager = () => {
       </Card>
 
       {/* Lista de convites */}
-      <Card className={`transition-colors duration-300 ${
-        isDarkTheme ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
-      }`}>
+      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
         <CardHeader>
-          <CardTitle className={`transition-colors duration-300 ${
-            isDarkTheme ? 'text-neutral-50' : 'text-primary-900'
-          }`}>
+          <CardTitle className="text-white">
             Convites Enviados
           </CardTitle>
         </CardHeader>
         <CardContent>
           {invites.length === 0 ? (
-            <p className={`text-center py-8 transition-colors duration-300 ${
-              isDarkTheme ? 'text-gray-400' : 'text-gray-500'
-            }`}>
+            <p className="text-center py-8 text-gray-300">
               Nenhum convite encontrado.
             </p>
           ) : (
@@ -220,24 +201,16 @@ const InviteManager = () => {
                 return (
                   <div
                     key={invite.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border transition-colors duration-300 ${
-                      isDarkTheme 
-                        ? 'bg-gray-600 border-gray-500' 
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
+                    className="flex items-center justify-between p-4 rounded-lg border bg-gray-700/50 border-gray-600 hover:border-orange-400 transition-all duration-300"
                   >
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
                         <StatusIcon className={`w-5 h-5 ${status.color}`} />
                         <div>
-                          <p className={`font-medium transition-colors duration-300 ${
-                            isDarkTheme ? 'text-neutral-50' : 'text-gray-900'
-                          }`}>
+                          <p className="font-medium text-white">
                             {invite.email}
                           </p>
-                          <p className={`text-sm transition-colors duration-300 ${
-                            isDarkTheme ? 'text-gray-400' : 'text-gray-500'
-                          }`}>
+                          <p className="text-sm text-gray-400">
                             Criado em {new Date(invite.created_at).toLocaleDateString('pt-BR')} • {status.label}
                           </p>
                         </div>
@@ -250,11 +223,7 @@ const InviteManager = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => copyInviteLink(invite.token)}
-                          className={`transition-colors duration-300 ${
-                            isDarkTheme
-                              ? 'border-gray-500 text-gray-300 hover:bg-gray-600'
-                              : 'border-gray-300 text-gray-700 hover:bg-gray-100'
-                          }`}
+                          className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400"
                         >
                           <Copy className="w-4 h-4 mr-1" />
                           Copiar Link
@@ -265,7 +234,7 @@ const InviteManager = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => deleteInvite(invite.id)}
-                        className="border-red-300 text-red-700 hover:bg-red-50 hover:border-red-400"
+                        className="border-red-400 text-red-400 hover:bg-red-500/20 hover:border-red-300"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

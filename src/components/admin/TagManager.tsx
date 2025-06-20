@@ -172,44 +172,57 @@ const TagManager = () => {
   };
 
   if (loading && tags.length === 0) {
-    return <div className="flex justify-center p-8">Carregando tags...</div>;
+    return <div className="flex justify-center p-8 text-gray-300">Carregando tags...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Gerenciar Tags</h2>
-        <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-white">Gerenciar Tags</h2>
+        <Button 
+          onClick={() => setShowForm(true)} 
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+        >
           <PlusIcon className="w-4 h-4" />
           Nova Tag
         </Button>
       </div>
 
       {showForm && (
-        <Card>
+        <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-white">
               {editingId ? 'Editar Tag' : 'Nova Tag'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="nome">Nome da Tag *</Label>
+                <Label htmlFor="nome" className="text-white">Nome da Tag *</Label>
                 <Input
                   id="nome"
                   value={tagName}
                   onChange={(e) => setTagName(e.target.value)}
-                  placeholder="Ex: básico, avançado, passo-a-passar"
+                  placeholder="Ex: básico, avançado, passo-a-passo"
                   required
+                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
                 />
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" disabled={loading || !tagName.trim()}>
+                <Button 
+                  type="submit" 
+                  disabled={loading || !tagName.trim()}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                >
                   {editingId ? 'Atualizar' : 'Criar'}
                 </Button>
-                <Button type="button" variant="outline" onClick={cancelEdit}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={cancelEdit}
+                  className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400"
+                >
                   Cancelar
                 </Button>
               </div>
@@ -218,15 +231,15 @@ const TagManager = () => {
         </Card>
       )}
 
-      <Card>
+      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
         <CardHeader>
-          <CardTitle>Tags Disponíveis</CardTitle>
+          <CardTitle className="text-white">Tags Disponíveis</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {tags.map((tag) => (
-              <div key={tag.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <Badge variant="secondary" className="flex-1">
+              <div key={tag.id} className="flex items-center justify-between p-3 bg-gray-700/50 border border-gray-600 rounded-lg hover:border-orange-400 transition-all duration-300">
+                <Badge variant="secondary" className="flex-1 bg-orange-500 text-white hover:bg-orange-600">
                   {tag.nome}
                 </Badge>
                 <div className="flex gap-1 ml-2">
@@ -234,9 +247,9 @@ const TagManager = () => {
                     variant="ghost" 
                     size="sm"
                     onClick={() => editTag(tag)}
-                    className="h-6 w-6 p-0"
+                    className="h-8 w-8 p-0 text-white hover:bg-white/10 hover:text-orange-400"
                   >
-                    <EditIcon className="w-3 h-3" />
+                    <EditIcon className="w-4 h-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -244,20 +257,26 @@ const TagManager = () => {
                         variant="ghost" 
                         size="sm"
                         onClick={() => handleDeleteClick(tag.id)}
+                        className="h-8 w-8 p-0 text-white hover:bg-red-500/20 hover:text-red-400"
                       >
-                        <TrashIcon className="w-3 h-3" />
+                        <TrashIcon className="w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="bg-gray-800 border-gray-600">
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Tem certeza que deseja excluir esta tag?</AlertDialogTitle>
-                        <AlertDialogDescription>
+                        <AlertDialogTitle className="text-white">Tem certeza que deseja excluir esta tag?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-gray-300">
                           Essa ação não pode ser desfeita. Isso excluirá permanentemente a tag e seus dados relacionados.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteTag}>Excluir</AlertDialogAction>
+                        <AlertDialogCancel className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">Cancelar</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={confirmDeleteTag}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Excluir
+                        </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
@@ -267,7 +286,7 @@ const TagManager = () => {
           </div>
 
           {tags.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-300">
               Nenhuma tag encontrada
             </div>
           )}

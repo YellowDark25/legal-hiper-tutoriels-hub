@@ -36,6 +36,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cadastro_empresa: {
+        Row: {
+          id: string
+          cnpj: string
+          nome_fantasia: string
+          sistema: string
+          cidade: string | null
+          estado: string | null
+          email: string
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          cnpj: string
+          nome_fantasia: string
+          sistema: string
+          cidade?: string | null
+          estado?: string | null
+          email: string
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          cnpj?: string
+          nome_fantasia?: string
+          sistema?: string
+          cidade?: string | null
+          estado?: string | null
+          email?: string
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       comentarios: {
         Row: {
           conteudo: string

@@ -91,6 +91,16 @@ const VideoUpload = () => {
     );
   };
 
+  // Função para sanitizar nomes de arquivo
+  const sanitizeFileName = (fileName: string) => {
+    return fileName
+      .normalize('NFD') // Decompoem caracteres acentuados
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-zA-Z0-9._-]/g, '_') // Substitui caracteres especiais por underscore
+      .replace(/_{2,}/g, '_') // Remove underscores duplos
+      .toLowerCase();
+  };
+
   const uploadFile = async (file: File, bucket: string, path: string) => {
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -121,6 +131,30 @@ const VideoUpload = () => {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validar tamanho do arquivo (máximo 500MB para vídeo)
+    const maxVideoSize = 500 * 1024 * 1024; // 500MB
+    if (videoFile.size > maxVideoSize) {
+      toast({
+        title: "Erro",
+        description: "O arquivo de vídeo é muito grande. Tamanho máximo: 500MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar tamanho da miniatura (máximo 10MB)
+    if (thumbnailFile) {
+      const maxThumbnailSize = 10 * 1024 * 1024; // 10MB
+      if (thumbnailFile.size > maxThumbnailSize) {
+        toast({
+          title: "Erro",
+          description: "O arquivo de miniatura é muito grande. Tamanho máximo: 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (!formData.titulo.trim()) {
@@ -159,7 +193,8 @@ const VideoUpload = () => {
       const currentUserId = user.id;
       
       // Upload do vídeo
-      const videoFileName = `admin/${Date.now()}_${videoFile.name}`;
+      const sanitizedVideoName = sanitizeFileName(videoFile.name);
+      const videoFileName = `admin/${Date.now()}_${sanitizedVideoName}`;
       const videoData = await uploadFile(videoFile, 'videos', videoFileName);
       
       setUploadProgress(50);
@@ -167,7 +202,8 @@ const VideoUpload = () => {
       // Upload da miniatura (se fornecida)
       let thumbnailPath = null;
       if (thumbnailFile) {
-        const thumbnailFileName = `admin/${Date.now()}_${thumbnailFile.name}`;
+        const sanitizedThumbnailName = sanitizeFileName(thumbnailFile.name);
+        const thumbnailFileName = `admin/${Date.now()}_${sanitizedThumbnailName}`;
         await uploadFile(thumbnailFile, 'thumbnails', thumbnailFileName);
         thumbnailPath = thumbnailFileName;
       }
@@ -237,31 +273,43 @@ const VideoUpload = () => {
 
     } catch (error) {
       console.error('Erro ao criar vídeo:', error);
+      
+      // Melhor tratamento de erros
+      let errorMessage = 'Erro desconhecido';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = (error as any).message;
+      }
+      
       toast({
-        title: "Erro",
-        description: `Não foi possível criar o vídeo: ${error.message || 'Erro desconhecido'}`,
+        title: "Erro no Upload",
+        description: `Não foi possível criar o vídeo: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
+      setUploadProgress(0);
     }
   };
 
   // Verificar se é admin usando o contexto de autenticação
   if (!user || !isAdmin) {
     return (
-      <Card>
+      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
         <CardContent className="p-8 text-center">
-          <p className="text-red-600">Acesso negado. Faça login como administrador.</p>
+          <p className="text-red-400">Acesso negado. Faça login como administrador.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
+    <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-white">
           <UploadIcon className="w-5 h-5" />
           Adicionar Novo Vídeo
         </CardTitle>
@@ -271,17 +319,18 @@ const VideoUpload = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="titulo">Título *</Label>
+                <Label htmlFor="titulo" className="text-white">Título *</Label>
                 <Input
                   id="titulo"
                   value={formData.titulo}
                   onChange={(e) => handleInputChange('titulo', e.target.value)}
                   required
+                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
                 />
               </div>
 
               <div>
-                <Label htmlFor="video-file">Arquivo de Vídeo *</Label>
+                <Label htmlFor="video-file" className="text-white">Arquivo de Vídeo *</Label>
                 <div className="flex items-center gap-2">
                   <VideoIcon className="w-5 h-5 text-gray-400" />
                   <Input
@@ -290,17 +339,21 @@ const VideoUpload = () => {
                     accept="video/mp4,video/avi,video/mov,video/wmv,video/webm"
                     onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
                     required
+                    className="bg-gray-700 border-gray-600 text-white file:bg-gray-600 file:text-white file:border-gray-500"
                   />
                 </div>
                 {videoFile && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Arquivo selecionado: {videoFile.name}
-                  </p>
+                  <div className="text-sm text-gray-400 mt-1">
+                    <p>Arquivo selecionado: {videoFile.name}</p>
+                    <p className="text-xs text-gray-500">
+                      Será salvo como: {sanitizeFileName(videoFile.name)}
+                    </p>
+                  </div>
                 )}
               </div>
 
               <div>
-                <Label htmlFor="thumbnail-file">Miniatura (Opcional)</Label>
+                <Label htmlFor="thumbnail-file" className="text-white">Miniatura (Opcional)</Label>
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-gray-400" />
                   <Input
@@ -308,55 +361,60 @@ const VideoUpload = () => {
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
                     onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                    className="bg-gray-700 border-gray-600 text-white file:bg-gray-600 file:text-white file:border-gray-500"
                   />
                 </div>
                 {thumbnailFile && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Arquivo selecionado: {thumbnailFile.name}
-                  </p>
+                  <div className="text-sm text-gray-400 mt-1">
+                    <p>Arquivo selecionado: {thumbnailFile.name}</p>
+                    <p className="text-xs text-gray-500">
+                      Será salvo como: {sanitizeFileName(thumbnailFile.name)}
+                    </p>
+                  </div>
                 )}
               </div>
 
               <div>
-                <Label htmlFor="duracao">Duração</Label>
+                <Label htmlFor="duracao" className="text-white">Duração</Label>
                 <Input
                   id="duracao"
                   value={formData.duracao}
                   onChange={(e) => handleInputChange('duracao', e.target.value)}
                   placeholder="Ex: 5:30"
+                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
                 />
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="sistema">Sistema *</Label>
+                <Label htmlFor="sistema" className="text-white">Sistema *</Label>
                 <Select 
                   value={formData.sistema} 
                   onValueChange={(value) => handleInputChange('sistema', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white focus:border-orange-400 focus:ring-orange-400">
                     <SelectValue placeholder="Selecione o sistema" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pdvlegal">PDV Legal</SelectItem>
-                    <SelectItem value="hiper">Hiper</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectItem value="pdvlegal" className="text-white hover:bg-gray-700">PDV Legal</SelectItem>
+                    <SelectItem value="hiper" className="text-white hover:bg-gray-700">Hiper</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label htmlFor="categoria">Categoria</Label>
+                <Label htmlFor="categoria" className="text-white">Categoria</Label>
                 <Select 
                   value={formData.categoria_id} 
                   onValueChange={(value) => handleInputChange('categoria_id', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white focus:border-orange-400 focus:ring-orange-400">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-gray-800 border-gray-600">
                     {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
+                      <SelectItem key={category.id} value={category.id} className="text-white hover:bg-gray-700">
                         {category.nome}
                       </SelectItem>
                     ))}
@@ -365,34 +423,34 @@ const VideoUpload = () => {
               </div>
 
               <div>
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status" className="text-white">Status</Label>
                 <Select 
                   value={formData.status} 
                   onValueChange={(value) => handleInputChange('status', value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white focus:border-orange-400 focus:ring-orange-400">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rascunho">Rascunho</SelectItem>
-                    <SelectItem value="ativo">Ativo</SelectItem>
-                    <SelectItem value="inativo">Inativo</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectItem value="rascunho" className="text-white hover:bg-gray-700">Rascunho</SelectItem>
+                    <SelectItem value="ativo" className="text-white hover:bg-gray-700">Ativo</SelectItem>
+                    <SelectItem value="inativo" className="text-white hover:bg-gray-700">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label>Tags</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto">
+                <Label className="text-white">Tags</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto bg-gray-700 p-3 rounded border border-gray-600">
                   {tags.map((tag) => (
                     <label key={tag.id} className="flex items-center space-x-2 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selectedTags.includes(tag.id)}
                         onChange={() => handleTagToggle(tag.id)}
-                        className="rounded"
+                        className="rounded text-orange-500 focus:ring-orange-400"
                       />
-                      <span className="text-sm">{tag.nome}</span>
+                      <span className="text-sm text-white">{tag.nome}</span>
                     </label>
                   ))}
                 </div>
@@ -401,27 +459,32 @@ const VideoUpload = () => {
           </div>
 
           <div>
-            <Label htmlFor="descricao">Descrição</Label>
+            <Label htmlFor="descricao" className="text-white">Descrição</Label>
             <Textarea
               id="descricao"
               value={formData.descricao}
               onChange={(e) => handleInputChange('descricao', e.target.value)}
               rows={4}
               placeholder="Descrição do vídeo..."
+              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
             />
           </div>
 
           {loading && uploadProgress > 0 && (
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-700 rounded-full h-2">
               <div 
-                className="bg-primary h-2 rounded-full transition-all duration-300"
+                className="bg-orange-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
-              <p className="text-sm text-center mt-2">Upload: {uploadProgress}%</p>
+              <p className="text-sm text-center mt-2 text-gray-300">Upload: {uploadProgress}%</p>
             </div>
           )}
 
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button 
+            type="submit" 
+            disabled={loading} 
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+          >
             {loading ? 'Fazendo Upload...' : 'Criar Vídeo'}
           </Button>
         </form>
