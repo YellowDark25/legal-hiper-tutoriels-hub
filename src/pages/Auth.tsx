@@ -11,85 +11,19 @@ import { useNavigate } from 'react-router-dom';
 const ADMIN_ID = 'c53793c5-8cc0-4d15-8315-7a3d95ba252d';
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [form, setForm] = useState({
-    cnpj: '',
-    nome_fantasia: '',
-    sistema: '',
     email: '',
     senha: '',
-    cidade: '',
-    estado: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [focusedField, setFocusedField] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { setIsAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // Autocompletar CNPJ usando BrasilAPI
-  const handleCnpjAutocomplete = async () => {
-    setError('');
-    setSuccess('');
-    if (!form.cnpj) return;
-    try {
-      setLoading(true);
-      const cnpj = form.cnpj.replace(/\D/g, '');
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
-      if (!res.ok) throw new Error('CNPJ não encontrado');
-      const data = await res.json();
-      setForm((prev) => ({
-        ...prev,
-        nome_fantasia: data.fantasia || data.razao_social || '',
-        cidade: data.municipio || '',
-        estado: data.uf || '',
-      }));
-      setSuccess('Dados do CNPJ preenchidos!');
-    } catch (err: any) {
-      setError('Não foi possível buscar dados do CNPJ.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // Cadastro de cliente
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-    try {
-      // 1. Cria usuário no Supabase Auth (sem confirmação de e-mail)
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.senha,
-      });
-      if (signUpError) throw signUpError;
-      // 1.5. Faz login automático para garantir autenticação
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: form.email,
-        password: form.senha,
-      });
-      if (signInError) throw signInError;
-      // 2. Salva dados na nova tabela cadastro_empresa
-      const { error: insertError } = await supabase.from('cadastro_empresa').insert({
-        cnpj: form.cnpj,
-        nome_fantasia: form.nome_fantasia,
-        sistema: form.sistema,
-        cidade: form.cidade,
-        estado: form.estado,
-        email: form.email,
-      });
-      if (insertError) throw insertError;
-      setSuccess('Cadastro realizado com sucesso! Faça login para acessar.');
-      setIsLogin(true); // Redireciona para tela de login
-    } catch (err: any) {
-      setError(err.message || 'Erro ao cadastrar.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Login de cliente ou admin
   const handleLogin = async (e: React.FormEvent) => {
@@ -116,7 +50,7 @@ const Auth = () => {
       if (profile?.is_admin) {
         setIsAdmin(true);
         setSuccess('Login de administrador realizado!');
-        navigate('/admin-choice');
+        navigate('/admin');
         return;
       } else {
         setIsAdmin(false);
@@ -133,141 +67,38 @@ const Auth = () => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8"
+      className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden"
       style={{
-        background: 'linear-gradient(to bottom right, #002147, #011123)'
+        background: 'linear-gradient(135deg, #002147 0%, #0066CC 25%, #FF6600 85%, #CCDD00 100%)'
       }}
     >
       <div 
-        className="absolute inset-0"
-        style={{
-          background: 'linear-gradient(to bottom right, rgba(0, 33, 71, 0.3), rgba(1, 17, 35, 0.3))'
-        }}
+        className="absolute inset-0 bg-gradient-to-br from-slate-900/20 via-transparent to-slate-800/30"
       ></div>
+      <div className="absolute inset-0 bg-black/10"></div>
       <div className="relative">
         {/* Header com Logo */}
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <div className="flex justify-center mb-6">
-            <div className="bg-white rounded-2xl shadow-lg p-4">
-              <img
-                className="h-16 w-auto"
-                src="/logo-nexsyn-CLVIoj6u.png"
-                alt="Nexsyn Logo"
-              />
-            </div>
+            <img
+              className="h-16 w-auto drop-shadow-2xl"
+              src="/logo-nexsyn-CLVIoj6u.png"
+              alt="Nexsyn Logo"
+            />
           </div>
-          <h2 className="text-center text-3xl font-bold tracking-tight text-white mb-2">
-            {isLogin ? 'Acesse sua conta' : 'Cadastre sua empresa'}
+          <h2 className="text-center text-3xl font-bold tracking-tight text-white mb-2 drop-shadow-lg" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            Acesse sua conta
           </h2>
-          <p className="text-center text-sm text-gray-300 mb-8">
-            {isLogin 
-              ? 'Entre com suas credenciais para acessar os tutoriais' 
-              : 'Preencha os dados para criar sua conta'
-            }
+          <p className="text-center text-sm text-gray-100 mb-8 drop-shadow-md font-medium" style={{ fontFamily: 'Sansation, sans-serif' }}>
+            Entre com suas credenciais para acessar os tutoriais profissionais
           </p>
         </div>
 
         {/* Formulário */}
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <Card className="bg-white/80 backdrop-blur-sm shadow-2xl border-0 rounded-2xl">
+          <Card className="bg-white/95 backdrop-blur-md shadow-2xl border border-white/20 rounded-2xl">
             <CardContent className="p-8">
-              <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-6">
-                {!isLogin && (
-                  <>
-                    {/* CNPJ com Autocompletar */}
-                    <div>
-                      <Label htmlFor="cnpj" className="block text-sm font-semibold text-gray-700 mb-2">
-                        CNPJ *
-                      </Label>
-                      <div className="flex space-x-2">
-                        <div className="flex-1">
-                          <Input
-                            id="cnpj"
-                            value={form.cnpj}
-                            onChange={(e) => setForm((prev) => ({ ...prev, cnpj: e.target.value }))}
-                            placeholder="00.000.000/0000-00"
-                            className="h-12 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            required
-                          />
-                        </div>
-                        <Button 
-                          type="button" 
-                          onClick={handleCnpjAutocomplete} 
-                          disabled={loading}
-                          variant="outline"
-                          className="h-12 px-4 border-gray-300 hover:bg-blue-50 hover:border-blue-400"
-                        >
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                          Buscar
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Nome da Empresa */}
-                    <div>
-                      <Label htmlFor="nome_fantasia" className="block text-sm font-semibold text-gray-700 mb-2">
-                        Nome da Empresa *
-                      </Label>
-                      <Input
-                        id="nome_fantasia"
-                        value={form.nome_fantasia}
-                        onChange={(e) => setForm((prev) => ({ ...prev, nome_fantasia: e.target.value }))}
-                        placeholder="Nome fantasia da sua empresa"
-                        className="h-12 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
-                      />
-                    </div>
-
-                    {/* Sistema */}
-                    <div>
-                      <Label htmlFor="sistema" className="block text-sm font-semibold text-gray-700 mb-2">
-                        Sistema *
-                      </Label>
-                      <Select
-                        value={form.sistema}
-                        onValueChange={(value) => setForm((prev) => ({ ...prev, sistema: value }))}
-                      >
-                        <SelectTrigger className="h-12 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                          <SelectValue placeholder="Selecione seu sistema" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pdvlegal">PDV Legal</SelectItem>
-                          <SelectItem value="hiper">Sistema Hiper</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Cidade e Estado */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="cidade" className="block text-sm font-semibold text-gray-700 mb-2">
-                          Cidade
-                        </Label>
-                        <Input
-                          id="cidade"
-                          value={form.cidade}
-                          onChange={(e) => setForm((prev) => ({ ...prev, cidade: e.target.value }))}
-                          placeholder="Sua cidade"
-                          className="h-12 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="estado" className="block text-sm font-semibold text-gray-700 mb-2">
-                          Estado
-                        </Label>
-                        <Input
-                          id="estado"
-                          value={form.estado}
-                          onChange={(e) => setForm((prev) => ({ ...prev, estado: e.target.value }))}
-                          placeholder="UF"
-                          className="h-12 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
+              <form onSubmit={handleLogin} className="space-y-6">
 
                 {/* Email */}
                 <div className="relative">
@@ -278,11 +109,12 @@ const Auth = () => {
                     onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                     onFocus={() => setFocusedField('email')}
                     onBlur={() => setFocusedField('')}
-                    className={`h-14 px-4 bg-white border rounded-md focus:ring-0 transition-all duration-200 text-gray-900 ${
+                    className={`h-14 px-4 bg-white border rounded-md focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200 text-gray-900 ${
                       form.email || focusedField === 'email'
-                        ? 'border-blue-500 border-2'
-                        : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-orange-500 border-2'
+                        : 'border-orange-300 hover:border-orange-400'
                     }`}
+                    style={{ fontFamily: 'Sansation, sans-serif' }}
                     placeholder=" "
                     required
                   />
@@ -290,9 +122,10 @@ const Auth = () => {
                     htmlFor="email" 
                     className={`absolute left-3 px-1 bg-white transition-all duration-200 pointer-events-none ${
                       form.email || focusedField === 'email'
-                        ? '-top-2 text-xs text-blue-600 font-medium' 
+                        ? '-top-2 text-xs text-orange-600 font-medium' 
                         : 'top-4 text-base text-gray-500'
                     }`}
+                    style={{ fontFamily: 'Poppins, sans-serif' }}
                   >
                     E-mail *
                   </label>
@@ -302,26 +135,45 @@ const Auth = () => {
                 <div className="relative">
                   <Input
                     id="senha"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={form.senha}
                     onChange={(e) => setForm((prev) => ({ ...prev, senha: e.target.value }))}
                     onFocus={() => setFocusedField('senha')}
                     onBlur={() => setFocusedField('')}
-                    className={`h-14 px-4 bg-white border rounded-md focus:ring-0 transition-all duration-200 text-gray-900 ${
+                    className={`h-14 px-4 pr-12 bg-white border rounded-md focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none transition-all duration-200 text-gray-900 ${
                       form.senha || focusedField === 'senha'
-                        ? 'border-blue-500 border-2'
-                        : 'border-gray-300 hover:border-gray-400'
+                        ? 'border-orange-500 border-2'
+                        : 'border-orange-300 hover:border-orange-400'
                     }`}
+                    style={{ fontFamily: 'Sansation, sans-serif' }}
                     placeholder=" "
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-orange-600 transition-colors duration-200 focus:outline-none focus:text-orange-600"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
                   <label 
                     htmlFor="senha" 
                     className={`absolute left-3 px-1 bg-white transition-all duration-200 pointer-events-none ${
                       form.senha || focusedField === 'senha'
-                        ? '-top-2 text-xs text-blue-600 font-medium' 
+                        ? '-top-2 text-xs text-orange-600 font-medium' 
                         : 'top-4 text-base text-gray-500'
                     }`}
+                    style={{ fontFamily: 'Poppins, sans-serif' }}
                   >
                     Senha *
                   </label>
@@ -354,8 +206,9 @@ const Auth = () => {
                 <div>
                   <Button 
                     type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-lg shadow-lg transform transition-all duration-200 hover:scale-[1.02] focus:ring-4 focus:ring-blue-200" 
+                    className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg shadow-lg transform transition-all duration-200 hover:scale-[1.02] focus:ring-4 focus:ring-orange-200" 
                     disabled={loading}
+                    style={{ fontFamily: 'Poppins, sans-serif' }}
                   >
                     {loading ? (
                       <div className="flex items-center justify-center">
@@ -367,90 +220,32 @@ const Auth = () => {
                       </div>
                     ) : (
                       <>
-                        {isLogin ? (
-                          <>
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" />
-                            </svg>
-                            Entrar
-                          </>
-                        ) : (
-                          <>
-                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                            </svg>
-                            Cadastrar
-                          </>
-                        )}
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" />
+                        </svg>
+                        Entrar
                       </>
                     )}
                   </Button>
                 </div>
               </form>
 
-              {/* Toggle entre Login e Cadastro */}
-              <div className="mt-8 text-center">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">ou</span>
-                  </div>
-                </div>
-                <div className="mt-6">
-                  <Button 
-                    variant="ghost" 
-                    type="button" 
-                    onClick={() => { 
-                      setIsLogin(!isLogin); 
-                      setError(''); 
-                      setSuccess(''); 
-                      setForm({
-                        cnpj: '',
-                        nome_fantasia: '',
-                        sistema: '',
-                        email: '',
-                        senha: '',
-                        cidade: '',
-                        estado: '',
-                      });
-                    }}
-                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-medium"
-                  >
-                    {isLogin ? (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                        </svg>
-                        Não tem cadastro? Cadastre-se
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" />
-                        </svg>
-                        Já tem cadastro? Faça login
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
+
             </CardContent>
           </Card>
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-400">
+        <div className="mt-8 text-center bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-orange-500/20 shadow-lg">
+          <p className="text-xs text-gray-100 font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
             © 2024 Nexsyn. Todos os direitos reservados.
           </p>
-          <div className="mt-2 flex justify-center space-x-4 text-xs text-gray-500">
-            <a href="/contato" className="hover:text-white transition-colors">
+          <div className="mt-2 flex justify-center space-x-4 text-xs text-gray-200">
+            <a href="/contato" className="hover:text-orange-300 transition-colors duration-200 font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
               Suporte
             </a>
-            <span>•</span>
-            <a href="https://nexsyn.com.br" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+            <span className="text-orange-400">•</span>
+            <a href="https://nexsyn.com.br" target="_blank" rel="noopener noreferrer" className="hover:text-orange-300 transition-colors duration-200 font-medium" style={{ fontFamily: 'Poppins, sans-serif' }}>
               Site oficial
             </a>
           </div>

@@ -12,7 +12,6 @@ import PDVLegal from "./pages/PDVLegal";
 import Hiper from "./pages/Hiper";
 import Contato from "./pages/Contato";
 import Admin from "./pages/Admin";
-import AdminChoice from "./pages/AdminChoice";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -42,7 +41,6 @@ const App: React.FC = () => (
                 <Route path="/hiper" element={<ClientProtectedRoute><Hiper /></ClientProtectedRoute>} />
                 <Route path="/contato" element={<ClientProtectedRoute><Contato /></ClientProtectedRoute>} />
                 <Route path="/admin" element={<Admin />} />
-                <Route path="/admin-choice" element={<AdminChoice />} />
                 <Route path="/auth" element={<Auth />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />

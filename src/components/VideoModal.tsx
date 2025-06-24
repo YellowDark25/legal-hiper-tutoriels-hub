@@ -1,10 +1,12 @@
+// VideoModal - Agora usando react-player para melhor suporte a diferentes formatos de mídia
 import React, { useState, useEffect } from 'react';
+import ReactPlayer from 'react-player';
 import VideoComments from './VideoComments';
-import VideoPlayer from './VideoPlayer';
-import { X, Clock, Eye, Tag, Calendar, User, Share2, Bookmark, ThumbsUp, Maximize, Minimize } from 'lucide-react';
+import { X, Clock, Eye, Tag, Calendar, User, Share2, Bookmark, ThumbsUp, Maximize, Minimize, Play, Pause, Volume2, VolumeX, Settings } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
+import { Slider } from './ui/slider';
 import { useToast } from '@/hooks/use-toast';
 
 interface Video {
@@ -28,10 +30,23 @@ interface VideoModalProps {
 
 const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPlayerFullscreen, setIsPlayerFullscreen] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(0.8);
+  const [muted, setMuted] = useState(false);
+  const [played, setPlayed] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [seeking, setSeeking] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showControls, setShowControls] = useState(true);
+  const [pip, setPip] = useState(false);
   const { toast } = useToast();
+
+  const playerRef = React.useRef<ReactPlayer>(null);
+  const controlsTimeoutRef = React.useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (isOpen) {
@@ -48,7 +63,11 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        if (isPlayerFullscreen) {
+          setIsPlayerFullscreen(false);
+        } else {
+          onClose();
+        }
       }
     };
 
@@ -59,34 +78,9 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, isPlayerFullscreen, onClose]);
 
   if (!isOpen || !video) return null;
-
-  // Debug: Verificar dados do vídeo
-  console.log('VideoModal - Dados do vídeo:', {
-    id: video.id,
-    titulo: video.titulo,
-    url: video.url,
-    miniatura: video.miniatura
-  });
-
-  // Verificar se é um vídeo do YouTube
-  const isYouTubeVideo = video.url && (
-    video.url.includes('youtube.com') || 
-    video.url.includes('youtu.be') ||
-    video.url.includes('youtube.com/embed')
-  );
-
-  // Verificar se é um vídeo direto (mp4, webm, etc.)
-  const isDirectVideo = video.url && (
-    video.url.includes('.mp4') ||
-    video.url.includes('.webm') ||
-    video.url.includes('.ogg') ||
-    video.url.includes('.mov') ||
-    video.url.includes('.avi') ||
-    !isYouTubeVideo
-  );
 
   // Garante que categoria seja sempre string
   const categoria: string = typeof video.categoria === 'object' && video.categoria !== null && 'nome' in video.categoria
@@ -130,18 +124,102 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
     });
   };
 
-  const handleTimeUpdate = (currentTime: number, duration: number) => {
-    // Função para lidar com atualizações de tempo do vídeo
-    // Pode ser usado para salvar progresso, analytics, etc.
+  const handlePlayPause = () => {
+    setPlaying(!playing);
   };
 
-  const handleVideoEnd = () => {
-    // Função para lidar com o fim do vídeo
-    // Pode ser usado para analytics, sugerir próximos vídeos, etc.
+  const handleVolumeChange = (value: number[]) => {
+    const newVolume = value[0];
+    setVolume(newVolume);
+    setMuted(newVolume === 0);
+  };
+
+  const handleToggleMuted = () => {
+    setMuted(!muted);
+  };
+
+  const handleSeekMouseDown = () => {
+    setSeeking(true);
+  };
+
+  const handleSeekChange = (value: number[]) => {
+    setPlayed(value[0] / 100);
+  };
+
+  const handleSeekMouseUp = (value: number[]) => {
+    setSeeking(false);
+    if (playerRef.current) {
+      playerRef.current.seekTo(value[0] / 100);
+    }
+  };
+
+  const handleProgress = (state: { played: number; loaded: number; playedSeconds: number; loadedSeconds: number }) => {
+    if (!seeking) {
+      setPlayed(state.played);
+    }
+  };
+
+  const handleDuration = (duration: number) => {
+    setDuration(duration);
+  };
+
+  const handleEnded = () => {
+    setPlaying(false);
     toast({
       title: "Vídeo finalizado!",
       description: "Esperamos que tenha gostado do tutorial.",
     });
+  };
+
+  const handleError = (error: string | MediaError) => {
+    console.error('Erro no player:', error);
+    toast({
+      title: "Erro no vídeo",
+      description: "Não foi possível carregar o vídeo. Verifique a URL.",
+      variant: "destructive"
+    });
+  };
+
+  const handlePlaybackRateChange = (rate: number) => {
+    setPlaybackRate(rate);
+    toast({
+      title: `Velocidade alterada`,
+      description: `Reproduzindo a ${rate}x`,
+    });
+  };
+
+  const handleMouseMove = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (playing) {
+        setShowControls(false);
+      }
+    }, 3000);
+  };
+
+  const handleFullscreen = () => {
+    setIsPlayerFullscreen(!isPlayerFullscreen);
+    if (!isPlayerFullscreen) {
+      toast({
+        title: "Modo tela cheia ativado",
+        description: "Pressione ESC para sair do modo tela cheia",
+      });
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const date = new Date(seconds * 1000);
+    const hh = date.getUTCHours();
+    const mm = date.getUTCMinutes();
+    const ss = date.getUTCSeconds().toString().padStart(2, '0');
+    
+    if (hh) {
+      return `${hh}:${mm.toString().padStart(2, '0')}:${ss}`;
+    }
+    return `${mm}:${ss}`;
   };
 
   const formatDate = (dateString?: string) => {
@@ -155,92 +233,100 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className={`bg-white dark:bg-gray-900 rounded-2xl w-full transition-all duration-300 overflow-hidden ${
-        isFullscreen ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-7xl max-h-[90vh]'
+      <div className={`bg-white dark:bg-gray-900 w-full transition-all duration-300 overflow-hidden ${
+        isPlayerFullscreen 
+          ? 'fixed inset-0 bg-black z-50 rounded-none' 
+          : isFullscreen 
+            ? 'max-w-[95vw] max-h-[95vh] rounded-2xl' 
+            : 'max-w-7xl max-h-[90vh] rounded-2xl'
       }`}>
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">TUTORIAL</span>
+        {!isPlayerFullscreen && (
+          <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">TUTORIAL</span>
+              </div>
+              <Separator orientation="vertical" className="h-6" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white line-clamp-1">
+                {video.titulo}
+              </h2>
             </div>
-            <Separator orientation="vertical" className="h-6" />
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white line-clamp-1">
-              {video.titulo}
-            </h2>
+            
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-            >
-              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
+        )}
         
-        <div className={`flex ${isFullscreen ? 'flex-col' : 'flex-col lg:flex-row'} max-h-[calc(90vh-100px)]`}>
+        <div className={`flex ${isPlayerFullscreen ? 'flex-col' : isFullscreen ? 'flex-col' : 'flex-col lg:flex-row'} ${isPlayerFullscreen ? 'h-screen' : 'max-h-[calc(90vh-100px)]'}`}>
           {/* Video Player Section */}
-          <div className={`${isFullscreen ? 'w-full' : 'lg:w-2/3'} relative`}>
-            <div className="relative bg-black rounded-lg overflow-hidden aspect-video">
+          <div className={`${isPlayerFullscreen ? 'w-full h-full' : isFullscreen ? 'w-full' : 'lg:w-2/3'} relative`}>
+            <div 
+              className={`relative bg-black overflow-hidden group ${
+                isPlayerFullscreen 
+                  ? 'w-full h-full rounded-none' 
+                  : 'rounded-lg aspect-video'
+              }`}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={() => playing && setShowControls(false)}
+            >
               {video.url ? (
-                isYouTubeVideo ? (
-                  // Player para vídeos do YouTube
-                  <iframe
-                    src={video.url}
-                    title={video.titulo}
-                    className="w-full h-full"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    onLoad={() => {
-                      console.log('YouTube iframe carregado:', video.url);
-                    }}
-                  />
-                ) : (
-                  // Player para vídeos diretos
-                  <video
-                    controls
-                    className="w-full h-full object-contain"
-                    poster={video.miniatura}
-                    onTimeUpdate={(e) => {
-                      const target = e.target as HTMLVideoElement;
-                      handleTimeUpdate(target.currentTime, target.duration);
-                    }}
-                    onEnded={handleVideoEnd}
-                    onError={(e) => {
-                      console.error('Erro no vídeo:', e);
-                      toast({
-                        title: "Erro no vídeo",
-                        description: "Não foi possível carregar o vídeo. Verifique a URL.",
-                        variant: "destructive"
-                      });
-                    }}
-                    onLoadStart={() => {
-                      console.log('Iniciando carregamento do vídeo:', video.url);
-                    }}
-                    onCanPlay={() => {
-                      console.log('Vídeo pronto para reproduzir');
-                    }}
-                  >
-                    <source src={video.url} type="video/mp4" />
-                    <source src={video.url} type="video/webm" />
-                    <source src={video.url} type="video/ogg" />
-                    Seu navegador não suporta o elemento de vídeo.
-                  </video>
-                )
+                <ReactPlayer
+                  ref={playerRef}
+                  url={video.url}
+                  width="100%"
+                  height="100%"
+                  playing={playing}
+                  volume={volume}
+                  muted={muted}
+                  playbackRate={playbackRate}
+                  pip={pip}
+                  onPlay={() => setPlaying(true)}
+                  onPause={() => setPlaying(false)}
+                  onProgress={handleProgress}
+                  onDuration={handleDuration}
+                  onEnded={handleEnded}
+                  onError={handleError}
+                  onReady={() => {
+                    console.log('Player pronto para reproduzir');
+                    toast({
+                      title: "Vídeo carregado!",
+                      description: "O vídeo está pronto para reprodução.",
+                    });
+                  }}
+                  config={{
+                    youtube: {
+                      playerVars: {
+                        showinfo: 1,
+                        controls: 0,
+                        rel: 0,
+                        modestbranding: 1,
+                      }
+                    },
+                    vimeo: {
+                      playerOptions: {
+                        byline: false,
+                        portrait: false,
+                        title: false,
+                      }
+                    },
+                    file: {
+                      attributes: {
+                        poster: video.miniatura,
+                        preload: 'metadata',
+                      }
+                    }
+                  }}
+                />
               ) : (
                 <div className="flex items-center justify-center h-full text-white">
                   <div className="text-center">
@@ -250,10 +336,136 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
                   </div>
                 </div>
               )}
+
+              {/* Custom Controls Overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 ${
+                showControls ? 'opacity-100' : 'opacity-0'
+              }`}>
+                {/* Top Controls */}
+                <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="bg-black/50 text-white">
+                      {playbackRate}x
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPip(!pip)}
+                      className="text-white hover:bg-white/20"
+                      title="Picture in Picture"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Center Play Button */}
+                {!playing && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Button
+                      size="lg"
+                      onClick={handlePlayPause}
+                      className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border-2 border-white/50 text-white rounded-full p-6 transition-all duration-200 hover:scale-110"
+                    >
+                      <Play className="w-8 h-8 ml-1" />
+                    </Button>
+                  </div>
+                )}
+
+                {/* Bottom Controls */}
+                <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="relative group">
+                      <Slider
+                        value={[played * 100]}
+                        max={100}
+                        step={0.01}
+                        onValueChange={handleSeekChange}
+                        onPointerDown={handleSeekMouseDown}
+                        onValueCommit={handleSeekMouseUp}
+                        className="w-full transition-all duration-200 group-hover:scale-y-125 cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-white/90 font-mono">
+                      <span className="bg-black/40 px-2 py-1 rounded backdrop-blur-sm">
+                        {formatTime(duration * played)}
+                      </span>
+                      <span className="bg-black/40 px-2 py-1 rounded backdrop-blur-sm">
+                        {formatTime(duration)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Control Buttons */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handlePlayPause}
+                        className="text-white hover:bg-white/20 transition-all duration-200 hover:scale-110"
+                      >
+                        {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                      </Button>
+
+                      {/* Volume Controls */}
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleToggleMuted}
+                          className="text-white hover:bg-white/20"
+                        >
+                          {muted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        </Button>
+                        <div className="w-20">
+                          <Slider
+                            value={[muted ? 0 : volume]}
+                            max={1}
+                            step={0.1}
+                            onValueChange={handleVolumeChange}
+                            className="transition-all duration-200"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      {/* Playback Speed */}
+                      <select
+                        value={playbackRate}
+                        onChange={(e) => handlePlaybackRateChange(Number(e.target.value))}
+                        className="bg-black/50 text-white text-sm rounded px-2 py-1 border border-white/20 backdrop-blur-sm transition-all duration-200 hover:bg-black/70"
+                      >
+                        <option value={0.5}>0.5x</option>
+                        <option value={0.75}>0.75x</option>
+                        <option value={1}>1x</option>
+                        <option value={1.25}>1.25x</option>
+                        <option value={1.5}>1.5x</option>
+                        <option value={2}>2x</option>
+                      </select>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleFullscreen}
+                        className="text-white hover:bg-white/20 transition-all duration-200 hover:scale-110"
+                        title="Tela cheia"
+                      >
+                        {isPlayerFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             
             {/* Video Info Section */}
-            {showInfo && (
+            {showInfo && !isPlayerFullscreen && (
               <div className="p-6 space-y-6 overflow-y-auto max-h-96">
                 {/* Title and Actions */}
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -369,20 +581,20 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
           </div>
           
           {/* Comments Section */}
-          {!isFullscreen && (
+          {!isFullscreen && !isPlayerFullscreen && (
             <div className="lg:w-1/3 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   💬 Comentários
                   <Badge variant="secondary" className="ml-auto">
                     Interativo
                   </Badge>
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                   Compartilhe suas dúvidas e experiências
                 </p>
               </div>
-              <div className="overflow-y-auto max-h-[calc(90vh-300px)]">
+              <div className="overflow-y-auto max-h-[calc(90vh-300px)] p-2">
                 <VideoComments videoId={video.id} />
               </div>
             </div>
@@ -390,34 +602,39 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
         </div>
         
         {/* Bottom Controls */}
-        <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowInfo(!showInfo)}
-                className="text-gray-600 dark:text-gray-300"
-              >
-                {showInfo ? "Ocultar detalhes" : "Mostrar detalhes"}
-              </Button>
-              {isFullscreen && (
+        {!isPlayerFullscreen && (
+          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsFullscreen(false)}
+                  onClick={() => setShowInfo(!showInfo)}
                   className="text-gray-600 dark:text-gray-300"
                 >
-                  Sair do modo tela cheia
+                  {showInfo ? "Ocultar detalhes" : "Mostrar detalhes"}
                 </Button>
-              )}
-            </div>
-            
-            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-              <span>Pressione ESC para fechar</span>
+                {isFullscreen && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsFullscreen(false)}
+                    className="text-gray-600 dark:text-gray-300"
+                  >
+                    Sair do modo tela cheia
+                  </Button>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                  ReactPlayer Enhanced
+                </Badge>
+                <span>Pressione ESC para fechar</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

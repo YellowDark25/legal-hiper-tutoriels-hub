@@ -12,6 +12,9 @@ interface Comment {
     full_name: string | null;
     username: string | null;
   } | null;
+  empresa: {
+    nome_fantasia: string | null;
+  } | null;
   replies?: Comment[];
 }
 
@@ -22,32 +25,42 @@ export const useVideoComments = (videoId: string) => {
 
   const fetchComments = async () => {
     try {
-      const { data, error } = await supabase
-        .from('comentarios')
-        .select(`
-          *,
-          profiles (
-            full_name,
-            username
-          )
-        `)
-        .eq('video_id', videoId)
-        .order('created_at', { ascending: true });
+      // Usar a nova função SQL que busca comentários com dados da empresa
+      const { data, error } = await supabase.rpc('get_comments_with_empresa', {
+        video_id_param: videoId
+      });
 
       if (error) throw error;
 
+      // Transformar os dados para o formato esperado
+      const commentsData = data?.map((row: any) => ({
+        id: row.id,
+        conteudo: row.conteudo,
+        created_at: row.created_at,
+        user_id: row.user_id,
+        parent_id: row.parent_id,
+        video_id: row.video_id,
+        profiles: {
+          full_name: row.user_full_name,
+          username: row.user_username
+        },
+        empresa: row.empresa_nome_fantasia ? {
+          nome_fantasia: row.empresa_nome_fantasia
+        } : null
+      })) || [];
+
       // Organizar comentários hierarquicamente
-      const topLevelComments = data?.filter(comment => !comment.parent_id) || [];
+      const topLevelComments = commentsData.filter((comment: any) => !comment.parent_id);
       const repliesMap = new Map();
       
-      data?.filter(comment => comment.parent_id).forEach(reply => {
+      commentsData.filter((comment: any) => comment.parent_id).forEach((reply: any) => {
         if (!repliesMap.has(reply.parent_id)) {
           repliesMap.set(reply.parent_id, []);
         }
         repliesMap.get(reply.parent_id).push(reply);
       });
 
-      const commentsWithReplies = topLevelComments.map(comment => ({
+      const commentsWithReplies = topLevelComments.map((comment: any) => ({
         ...comment,
         replies: repliesMap.get(comment.id) || []
       }));

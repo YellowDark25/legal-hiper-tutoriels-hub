@@ -135,14 +135,14 @@ const Contato: React.FC = () => {
                   {(isAdmin || userSystem === 'hiper' || !userSystem) && (
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow duration-200">
                     <div className="flex items-center mb-4">
-                      <div className="w-12 h-12 rounded-lg flex items-center justify-center mr-3 p-2" style={{ backgroundColor: '#7C3AED' }}>
+                      <div className="w-12 h-12 bg-purple-600 dark:bg-purple-700 rounded-lg flex items-center justify-center mr-3 p-2">
                         <img 
                           src="/hiper-logo-D4juEd9-.png" 
                           alt="Hiper Logo" 
                           className="w-full h-full object-contain"
                         />
                       </div>
-                      <h3 className="text-xl font-bold" style={{ color: '#7C3AED' }}>Sistema Hiper</h3>
+                      <h3 className="text-xl font-bold text-purple-600 dark:text-purple-400">Sistema Hiper</h3>
                     </div>
                     <p className="text-gray-600 dark:text-gray-300 mb-4">
                       Sistema integrado de gestão empresarial
@@ -152,8 +152,7 @@ const Contato: React.FC = () => {
                         href="https://nexsyn.com.br/hiper"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block hover:opacity-80 transition-opacity"
-                        style={{ color: '#7C3AED' }}
+                        className="block text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
                       >
                         → Site oficial do Hiper
                       </a>

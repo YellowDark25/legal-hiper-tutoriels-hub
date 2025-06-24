@@ -51,6 +51,9 @@ export interface Comment {
   created_at: string;
   updated_at: string;
   profiles?: Profile;
+  empresa?: {
+    nome_fantasia: string | null;
+  };
   replies?: Comment[];
 }
 

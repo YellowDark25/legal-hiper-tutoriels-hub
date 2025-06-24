@@ -25,6 +25,9 @@ interface Comment {
     full_name: string | null;
     username: string | null;
   } | null;
+  empresa: {
+    nome_fantasia: string | null;
+  } | null;
   replies?: Comment[];
 }
 
@@ -46,6 +49,24 @@ const formatDate = (dateString: string) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+// Função para obter o nome de exibição do usuário
+const getDisplayName = (comment: Comment) => {
+  // Prioridade: nome_fantasia da empresa > full_name > username > fallback
+  if (comment.empresa?.nome_fantasia) {
+    return comment.empresa.nome_fantasia;
+  }
+  
+  if (comment.profiles?.full_name) {
+    return comment.profiles.full_name;
+  }
+  
+  if (comment.profiles?.username) {
+    return comment.profiles.username;
+  }
+  
+  return `usuário-${comment.user_id.slice(-8)}`;
 };
 
 const CommentItem: React.FC<CommentItemProps> = ({
@@ -74,14 +95,14 @@ const CommentItem: React.FC<CommentItemProps> = ({
   };
 
   return (
-    <Card>
+    <Card className="border-gray-200 dark:border-gray-700">
       <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-2">
+        <div className="flex justify-between items-start mb-3">
           <div>
-            <p className="font-medium">
-              {comment.profiles?.full_name || comment.profiles?.username || 'Usuário'}
+            <p className="font-semibold text-gray-900 dark:text-white text-sm">
+              {getDisplayName(comment)}
             </p>
-            <p className="text-sm text-gray-500">{formatDate(comment.created_at)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{formatDate(comment.created_at)}</p>
           </div>
           {isAdmin && (
             <AlertDialog open={openDialog} onOpenChange={setOpenDialog}>
@@ -109,24 +130,25 @@ const CommentItem: React.FC<CommentItemProps> = ({
           )}
         </div>
         
-        <p className="mb-3">{comment.conteudo}</p>
+        <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">{comment.conteudo}</p>
         
         {showReplyButton && currentUserId && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsReplying(!isReplying)}
+            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
           >
-            <ReplyIcon className="w-4 h-4 mr-1" />
+            <ReplyIcon className="w-4 h-4 mr-2" />
             Responder
           </Button>
         )}
 
         {isReplying && (
-          <div className="mt-3 pl-4 border-l-2 border-gray-200">
+          <div className="mt-4 pl-4 border-l-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg p-3">
             <CommentForm
               onSubmit={handleReply}
-              placeholder="Sua resposta..."
+              placeholder="Escreva sua resposta..."
               submitLabel="Responder"
               loading={loading}
               onCancel={() => setIsReplying(false)}
@@ -136,27 +158,28 @@ const CommentItem: React.FC<CommentItemProps> = ({
         )}
 
         {comment.replies && comment.replies.length > 0 && (
-          <div className="mt-4 pl-4 border-l-2 border-gray-200 space-y-3">
+          <div className="mt-4 pl-4 border-l-2 border-blue-200 dark:border-blue-800 space-y-3">
             {comment.replies.map((reply) => (
-              <div key={reply.id} className="bg-gray-50 p-3 rounded">
+              <div key={reply.id} className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <p className="font-medium text-sm">
-                      {reply.profiles?.full_name || reply.profiles?.username || 'Usuário'}
+                    <p className="font-semibold text-sm text-gray-900 dark:text-white">
+                      {getDisplayName(reply)}
                     </p>
-                    <p className="text-xs text-gray-500">{formatDate(reply.created_at)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{formatDate(reply.created_at)}</p>
                   </div>
                   {isAdmin && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => onDelete(reply.id)}
+                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                     >
                       <TrashIcon className="w-3 h-3" />
                     </Button>
                   )}
                 </div>
-                <p className="text-sm">{reply.conteudo}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{reply.conteudo}</p>
               </div>
             ))}
           </div>
