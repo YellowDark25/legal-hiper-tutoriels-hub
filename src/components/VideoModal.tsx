@@ -1,13 +1,17 @@
 // VideoModal - Agora usando react-player para melhor suporte a diferentes formatos de mídia
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import VideoComments from './VideoComments';
-import { X, Clock, Eye, Tag, Calendar, User, Share2, Bookmark, ThumbsUp, Maximize, Minimize, Play, Pause, Volume2, VolumeX, Settings } from 'lucide-react';
+import { X, Clock, Eye, Tag, Calendar, User, Share2, Bookmark, ThumbsUp, Maximize, Minimize, Play, Pause, Volume2, VolumeX, Settings, MoreVertical } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
 import { Slider } from './ui/slider';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+import { useVideoProgress } from '@/hooks/useVideoProgress';
+import { useProgressStats } from '@/hooks/useProgressStats';
 
 interface Video {
   id: string;
@@ -43,14 +47,28 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [pip, setPip] = useState(false);
+  const [showMobileControls, setShowMobileControls] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const { markAsWatched, updateWatchDuration } = useVideoProgress(user?.id);
+  const [jaMarcado, setJaMarcado] = useState(false);
+  const [toastShown, setToastShown] = useState(false);
+  const { refetch: refetchProgress } = useProgressStats();
 
-  const playerRef = React.useRef<ReactPlayer>(null);
-  const controlsTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const playerRef = useRef<ReactPlayer>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      // Auto-hide controls on mobile after 3 seconds
+      if (isMobile) {
+        const timeout = setTimeout(() => {
+          setShowMobileControls(false);
+        }, 3000);
+        return () => clearTimeout(timeout);
+      }
     } else {
       document.body.style.overflow = 'unset';
     }
@@ -58,7 +76,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen]);
+  }, [isOpen, isMobile]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -79,6 +97,14 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isOpen, isPlayerFullscreen, onClose]);
+
+  useEffect(() => {
+    setJaMarcado(false); // Reset ao abrir novo vídeo
+  }, [video?.id, user?.id]);
+
+  useEffect(() => {
+    setToastShown(false); // Reset ao trocar de vídeo
+  }, [video?.id]);
 
   if (!isOpen || !video) return null;
 
@@ -156,6 +182,36 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   const handleProgress = (state: { played: number; loaded: number; playedSeconds: number; loadedSeconds: number }) => {
     if (!seeking) {
       setPlayed(state.played);
+      
+      // Atualizar duração assistida periodicamente apenas a cada 10 segundos
+      if (video && user && state.playedSeconds > 0 && Math.floor(state.playedSeconds) % 10 === 0) {
+        const categoria = typeof video.categoria === 'object' ? video.categoria.nome : video.categoria;
+        updateWatchDuration?.(video.id, Math.floor(state.playedSeconds), video.titulo);
+      }
+      
+      // Marcar como assistido ao atingir 85% do vídeo, apenas uma vez
+      if (video && user && !jaMarcado && state.played >= 0.85) {
+        const categoria = typeof video.categoria === 'object' ? video.categoria.nome : video.categoria;
+        markAsWatched(video.id, video.titulo, categoria, Math.floor(state.playedSeconds))
+          .then(() => {
+            console.log('Vídeo marcado como assistido com sucesso');
+        setJaMarcado(true);
+        refetchProgress(); // Atualiza dashboard
+            
+            toast({
+              title: "Vídeo quase finalizado! 🎉",
+              description: "Você já assistiu 85% do vídeo. Progresso salvo!",
+            });
+          })
+          .catch((error) => {
+            console.error('Erro ao marcar vídeo como assistido:', error);
+            toast({
+              title: "Erro ao salvar progresso",
+              description: "Não foi possível salvar seu progresso. Tente novamente.",
+              variant: "destructive"
+            });
+          });
+      }
     }
   };
 
@@ -165,10 +221,34 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
 
   const handleEnded = () => {
     setPlaying(false);
+    
+    // Marcar como assistido quando o vídeo terminar (caso não tenha sido marcado antes)
+    if (video && user) {
+      const categoria = typeof video.categoria === 'object' ? video.categoria.nome : video.categoria;
+      markAsWatched(video.id, video.titulo, categoria, Math.floor(duration))
+        .then(() => {
+          console.log('Vídeo marcado como completo no final');
+          setJaMarcado(true);
+          refetchProgress(); // Atualiza dashboard
+          
+          toast({
+            title: "Vídeo finalizado! 🎉",
+            description: "Parabéns! Você concluiu este tutorial. Seu progresso foi salvo.",
+          });
+        })
+        .catch((error) => {
+          console.error('Erro ao marcar vídeo como completo:', error);
+          toast({
+            title: "Vídeo finalizado!",
+            description: "Parabéns! Você concluiu este tutorial.",
+          });
+        });
+    } else {
     toast({
       title: "Vídeo finalizado!",
-      description: "Esperamos que tenha gostado do tutorial.",
+        description: "Parabéns! Você concluiu este tutorial.",
     });
+    }
   };
 
   const handleError = (error: string | MediaError) => {
@@ -189,37 +269,34 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   };
 
   const handleMouseMove = () => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) {
-      clearTimeout(controlsTimeoutRef.current);
-    }
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (playing) {
-        setShowControls(false);
+    if (!isMobile) {
+      setShowControls(true);
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
       }
-    }, 3000);
+      controlsTimeoutRef.current = setTimeout(() => {
+        if (playing) {
+          setShowControls(false);
+        }
+      }, 3000);
+    }
+  };
+
+  const handleTouchStart = () => {
+    if (isMobile) {
+      setShowMobileControls(!showMobileControls);
+    }
   };
 
   const handleFullscreen = () => {
     setIsPlayerFullscreen(!isPlayerFullscreen);
-    if (!isPlayerFullscreen) {
-      toast({
-        title: "Modo tela cheia ativado",
-        description: "Pressione ESC para sair do modo tela cheia",
-      });
-    }
   };
 
   const formatTime = (seconds: number) => {
-    const date = new Date(seconds * 1000);
-    const hh = date.getUTCHours();
-    const mm = date.getUTCMinutes();
-    const ss = date.getUTCSeconds().toString().padStart(2, '0');
-    
-    if (hh) {
-      return `${hh}:${mm.toString().padStart(2, '0')}:${ss}`;
-    }
-    return `${mm}:${ss}`;
+    if (!seconds || isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const formatDate = (dateString?: string) => {
@@ -232,52 +309,57 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in mobile-padding">
       <div className={`bg-white dark:bg-gray-900 w-full transition-all duration-300 overflow-hidden ${
         isPlayerFullscreen 
-          ? 'fixed inset-0 bg-black z-50 rounded-none' 
-          : isFullscreen 
-            ? 'max-w-[95vw] max-h-[95vh] rounded-2xl' 
-            : 'max-w-7xl max-h-[90vh] rounded-2xl'
+          ? 'fixed inset-0 bg-black z-50 rounded-none mobile-full-height' 
+          : isMobile
+            ? 'max-w-[98vw] max-h-[95vh] rounded-xl'
+            : isFullscreen 
+              ? 'max-w-[95vw] max-h-[95vh] rounded-2xl' 
+              : 'max-w-7xl max-h-[90vh] rounded-2xl'
       }`}>
         {/* Header */}
         {!isPlayerFullscreen && (
-          <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
-            <div className="flex items-center space-x-4">
+          <div className="flex justify-between items-center p-3 md:p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
+            <div className="flex items-center space-x-2 md:space-x-4 min-w-0 flex-1">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">TUTORIAL</span>
+                <div className="w-2 h-2 md:w-3 md:h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300">TUTORIAL</span>
               </div>
-              <Separator orientation="vertical" className="h-6" />
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white line-clamp-1">
+              {!isMobile && <Separator orientation="vertical" className="h-6" />}
+              <h2 className="text-sm md:text-xl font-bold text-gray-900 dark:text-white line-clamp-1 min-w-0">
                 {video.titulo}
               </h2>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onClose}
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white touch-target-sm"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
             </div>
           </div>
         )}
         
-        <div className={`flex ${isPlayerFullscreen ? 'flex-col' : isFullscreen ? 'flex-col' : 'flex-col lg:flex-row'} ${isPlayerFullscreen ? 'h-screen' : 'max-h-[calc(90vh-100px)]'}`}>
+        <div className={`flex ${isPlayerFullscreen ? 'flex-col' : isMobile ? 'flex-col' : isFullscreen ? 'flex-col' : 'flex-col lg:flex-row'} ${isPlayerFullscreen ? 'h-screen' : 'max-h-[calc(95vh-60px)]'}`}>
           {/* Video Player Section */}
-          <div className={`${isPlayerFullscreen ? 'w-full h-full' : isFullscreen ? 'w-full' : 'lg:w-2/3'} relative`}>
+          <div className={`${isPlayerFullscreen ? 'w-full h-full' : isMobile ? 'w-full' : isFullscreen ? 'w-full' : 'lg:w-2/3'} relative`}>
             <div 
               className={`relative bg-black overflow-hidden group ${
                 isPlayerFullscreen 
                   ? 'w-full h-full rounded-none' 
-                  : 'rounded-lg aspect-video'
+                  : isMobile
+                    ? 'w-full aspect-video rounded-t-lg'
+                    : 'rounded-lg aspect-video'
               }`}
               onMouseMove={handleMouseMove}
-              onMouseLeave={() => playing && setShowControls(false)}
+              onMouseLeave={() => !isMobile && playing && setShowControls(false)}
+              onTouchStart={handleTouchStart}
             >
               {video.url ? (
                 <ReactPlayer
@@ -297,11 +379,13 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
                   onEnded={handleEnded}
                   onError={handleError}
                   onReady={() => {
-                    console.log('Player pronto para reproduzir');
-                    toast({
-                      title: "Vídeo carregado!",
-                      description: "O vídeo está pronto para reprodução.",
-                    });
+                    if (!toastShown) {
+                      toast({
+                        title: "Vídeo carregado!",
+                        description: "O vídeo está pronto para reprodução."
+                      });
+                      setToastShown(true);
+                    }
                   }}
                   config={{
                     youtube: {
@@ -329,35 +413,38 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-white">
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">⚠️</div>
-                    <p>URL do vídeo não disponível</p>
-                    <p className="text-sm text-gray-400 mt-2">Verifique se o vídeo foi carregado corretamente</p>
+                  <div className="text-center p-4">
+                    <div className="text-xl md:text-2xl mb-2">⚠️</div>
+                    <p className="text-sm md:text-base">URL do vídeo não disponível</p>
+                    <p className="text-xs md:text-sm text-gray-400 mt-2">Verifique se o vídeo foi carregado corretamente</p>
                   </div>
                 </div>
               )}
 
               {/* Custom Controls Overlay */}
               <div className={`absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent transition-opacity duration-300 ${
-                showControls ? 'opacity-100' : 'opacity-0'
+                (isMobile ? showMobileControls : showControls) ? 'opacity-100' : 'opacity-0'
               }`}>
                 {/* Top Controls */}
-                <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="secondary" className="bg-black/50 text-white">
+                <div className="absolute top-2 md:top-4 left-2 md:left-4 right-2 md:right-4 flex justify-between items-start">
+                  <div className="flex items-center space-x-1 md:space-x-2">
+                    <Badge variant="secondary" className="bg-black/50 text-white text-xs">
                       {playbackRate}x
                     </Badge>
                   </div>
                   
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 md:space-x-2">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setPip(!pip)}
-                      className="text-white hover:bg-white/20"
-                      title="Picture in Picture"
+                      onClick={handleFullscreen}
+                      className="text-white hover:bg-white/20 touch-target-sm"
+                      title="Tela cheia"
                     >
-                      <Settings className="w-4 h-4" />
+                      {isPlayerFullscreen ? 
+                        <Minimize className="w-3 h-3 md:w-4 md:h-4" /> : 
+                        <Maximize className="w-3 h-3 md:w-4 md:h-4" />
+                      }
                     </Button>
                   </div>
                 </div>
@@ -366,19 +453,19 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
                 {!playing && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Button
-                      size="lg"
+                      size={isMobile ? "default" : "lg"}
                       onClick={handlePlayPause}
-                      className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border-2 border-white/50 text-white rounded-full p-6 transition-all duration-200 hover:scale-110"
+                      className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border-2 border-white/50 text-white rounded-full p-3 md:p-6 transition-all duration-200 hover:scale-110 touch-target"
                     >
-                      <Play className="w-8 h-8 ml-1" />
+                      <Play className="w-5 h-5 md:w-8 md:h-8 ml-1" />
                     </Button>
                   </div>
                 )}
 
                 {/* Bottom Controls */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
+                <div className="absolute bottom-0 left-0 right-0 p-2 md:p-4 space-y-2 md:space-y-3">
                   {/* Progress Bar */}
-                  <div className="space-y-2">
+                  <div className="space-y-1 md:space-y-2">
                     <div className="relative group">
                       <Slider
                         value={[played * 100]}
@@ -391,10 +478,10 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
                       />
                     </div>
                     <div className="flex justify-between text-xs text-white/90 font-mono">
-                      <span className="bg-black/40 px-2 py-1 rounded backdrop-blur-sm">
+                      <span className="bg-black/40 px-1 md:px-2 py-1 rounded backdrop-blur-sm">
                         {formatTime(duration * played)}
                       </span>
-                      <span className="bg-black/40 px-2 py-1 rounded backdrop-blur-sm">
+                      <span className="bg-black/40 px-1 md:px-2 py-1 rounded backdrop-blur-sm">
                         {formatTime(duration)}
                       </span>
                     </div>
@@ -402,44 +489,47 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
 
                   {/* Control Buttons */}
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 md:space-x-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={handlePlayPause}
-                        className="text-white hover:bg-white/20 transition-all duration-200 hover:scale-110"
+                        className="text-white hover:bg-white/20 transition-all duration-200 hover:scale-110 touch-target-sm"
                       >
-                        {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                        {playing ? <Pause className="w-4 h-4 md:w-6 md:h-6" /> : <Play className="w-4 h-4 md:w-6 md:h-6" />}
                       </Button>
 
-                      {/* Volume Controls */}
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleToggleMuted}
-                          className="text-white hover:bg-white/20"
-                        >
-                          {muted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                        </Button>
-                        <div className="w-20">
-                          <Slider
-                            value={[muted ? 0 : volume]}
-                            max={1}
-                            step={0.1}
-                            onValueChange={handleVolumeChange}
-                            className="transition-all duration-200"
-                          />
+                      {/* Volume Controls - Hidden on mobile */}
+                      {!isMobile && (
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleToggleMuted}
+                            className="text-white hover:bg-white/20 touch-target-sm"
+                          >
+                            {muted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                          </Button>
+                          
+                          <div className="w-20">
+                            <Slider
+                              value={[muted ? 0 : volume * 100]}
+                              max={100}
+                              step={1}
+                              onValueChange={(value) => handleVolumeChange([value[0] / 100])}
+                              className="cursor-pointer"
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      {/* Playback Speed */}
+                    <div className="flex items-center space-x-1 md:space-x-2">
+                      {/* Playback Rate */}
                       <select
                         value={playbackRate}
                         onChange={(e) => handlePlaybackRateChange(Number(e.target.value))}
-                        className="bg-black/50 text-white text-sm rounded px-2 py-1 border border-white/20 backdrop-blur-sm transition-all duration-200 hover:bg-black/70"
+                        className="bg-black/40 text-white text-xs md:text-sm px-1 md:px-2 py-1 rounded backdrop-blur-sm border-none outline-none cursor-pointer touch-target-sm"
                       >
                         <option value={0.5}>0.5x</option>
                         <option value={0.75}>0.75x</option>
@@ -448,193 +538,126 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
                         <option value={1.5}>1.5x</option>
                         <option value={2}>2x</option>
                       </select>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleFullscreen}
-                        className="text-white hover:bg-white/20 transition-all duration-200 hover:scale-110"
-                        title="Tela cheia"
-                      >
-                        {isPlayerFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-                      </Button>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Video Info Section */}
-            {showInfo && !isPlayerFullscreen && (
-              <div className="p-6 space-y-6 overflow-y-auto max-h-96">
-                {/* Title and Actions */}
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div className="flex-1">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      {video.titulo}
-                    </h1>
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                      {video.visualizacoes && (
+          </div>
+
+          {/* Video Info and Comments Section */}
+          {!isPlayerFullscreen && (
+            <div className={`${isMobile ? 'w-full' : 'lg:w-1/3'} border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex flex-col`}>
+              <div className="p-3 md:p-6 flex-1 overflow-y-auto">
+                {/* Video Info */}
+                <div className="mb-4 md:mb-6">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 md:gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 leading-tight">
+                        {video.titulo}
+                      </h3>
+                      
+                      <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-3">
                         <div className="flex items-center gap-1">
-                          <Eye className="w-4 h-4" />
-                          <span>{video.visualizacoes.toLocaleString()} visualizações</span>
+                          <Eye className="w-3 h-3 md:w-4 md:h-4" />
+                          <span>{video.visualizacoes || 0} visualizações</span>
                         </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>Duração: {video.duracao}</span>
+                        {video.duracao && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 md:w-4 md:h-4" />
+                            <span>{video.duracao}</span>
+                          </div>
+                        )}
+                        {video.created_at && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3 md:w-4 md:h-4" />
+                            <span>{formatDate(video.created_at)}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDate(video.created_at)}</span>
+
+                      {/* Category */}
+                      <div className="mb-3">
+                        <Badge 
+                          variant="secondary" 
+                          className="text-xs font-medium"
+                          style={{ 
+                            backgroundColor: `${categoriaCor}20`,
+                            color: categoriaCor,
+                            borderColor: `${categoriaCor}40`
+                          }}
+                        >
+                          {categoria}
+                        </Badge>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant={isLiked ? "default" : "outline"}
-                      size="sm"
-                      onClick={handleLike}
-                      className={isLiked ? "bg-red-500 hover:bg-red-600 text-white" : ""}
-                    >
-                      <ThumbsUp className="w-4 h-4 mr-2" />
-                      {isLiked ? "Curtido" : "Curtir"}
-                    </Button>
-                    <Button
-                      variant={isSaved ? "default" : "outline"}
-                      size="sm"
-                      onClick={handleSave}
-                      className={isSaved ? "bg-blue-500 hover:bg-blue-600 text-white" : ""}
-                    >
-                      <Bookmark className="w-4 h-4 mr-2" />
-                      {isSaved ? "Salvo" : "Salvar"}
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleShare}>
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Compartilhar
-                    </Button>
-                  </div>
-                </div>
 
-                {/* Category and Tags */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <Badge 
-                    style={{ backgroundColor: categoriaCor }}
-                    className="text-white px-3 py-1 text-sm font-medium"
-                  >
-                    {categoria}
-                  </Badge>
-                  
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleLike}
+                        className={`touch-target-sm ${isLiked ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'}`}
+                      >
+                        <ThumbsUp className="w-4 h-4" />
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSave}
+                        className={`touch-target-sm ${isSaved ? 'text-blue-500' : 'text-gray-600 dark:text-gray-400'}`}
+                      >
+                        <Bookmark className="w-4 h-4" />
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleShare}
+                        className="text-gray-600 dark:text-gray-400 touch-target-sm"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="mt-3 md:mt-4">
+                    <p className="text-sm md:text-base text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {video.descricao || 'Sem descrição disponível'}
+                    </p>
+                  </div>
+
+                  {/* Tags */}
                   {video.tags && video.tags.length > 0 && (
-                    <>
-                      <Separator orientation="vertical" className="h-4" />
-                      <div className="flex items-center gap-2">
-                        <Tag className="w-4 h-4 text-gray-500" />
-                        <div className="flex flex-wrap gap-2">
-                          {video.tags.map((tag) => (
-                            <Badge key={tag.id} variant="secondary" className="text-xs">
-                              {tag.nome}
-                            </Badge>
-                          ))}
-                        </div>
+                    <div className="mt-3 md:mt-4">
+                      <div className="flex flex-wrap gap-1 md:gap-2">
+                        {video.tags.map((tag) => (
+                          <Badge key={tag.id} variant="outline" className="text-xs">
+                            <Tag className="w-3 h-3 mr-1" />
+                            {tag.nome}
+                          </Badge>
+                        ))}
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
 
-                {/* Description */}
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    Sobre este tutorial
-                  </h3>
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {video.descricao || "Nenhuma descrição disponível para este tutorial."}
-                  </p>
-                </div>
+                <Separator className="my-4 md:my-6" />
 
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {video.visualizacoes?.toLocaleString() || '0'}
-                    </div>
-                    <div className="text-sm text-blue-600/80 dark:text-blue-400/80">Visualizações</div>
-                  </div>
-                  <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {video.duracao}
-                    </div>
-                    <div className="text-sm text-green-600/80 dark:text-green-400/80">Duração</div>
-                  </div>
-                  <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 text-center">
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {categoria}
-                    </div>
-                    <div className="text-sm text-purple-600/80 dark:text-purple-400/80">Categoria</div>
-                  </div>
+                {/* Comments Section */}
+                <div className="flex-1">
+                  <h4 className="text-base md:text-lg font-semibold text-gray-900 dark:text-white mb-3 md:mb-4">
+                    Comentários
+                  </h4>
+                  <VideoComments videoId={video.id} />
                 </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Comments Section */}
-          {!isFullscreen && !isPlayerFullscreen && (
-            <div className="lg:w-1/3 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  💬 Comentários
-                  <Badge variant="secondary" className="ml-auto">
-                    Interativo
-                  </Badge>
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                  Compartilhe suas dúvidas e experiências
-                </p>
-              </div>
-              <div className="overflow-y-auto max-h-[calc(90vh-300px)] p-2">
-                <VideoComments videoId={video.id} />
               </div>
             </div>
           )}
         </div>
-        
-        {/* Bottom Controls */}
-        {!isPlayerFullscreen && (
-          <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowInfo(!showInfo)}
-                  className="text-gray-600 dark:text-gray-300"
-                >
-                  {showInfo ? "Ocultar detalhes" : "Mostrar detalhes"}
-                </Button>
-                {isFullscreen && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsFullscreen(false)}
-                    className="text-gray-600 dark:text-gray-300"
-                  >
-                    Sair do modo tela cheia
-                  </Button>
-                )}
-              </div>
-              
-              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                  ReactPlayer Enhanced
-                </Badge>
-                <span>Pressione ESC para fechar</span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

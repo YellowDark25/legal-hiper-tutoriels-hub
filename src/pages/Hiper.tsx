@@ -5,23 +5,28 @@ import Footer from '../components/Footer';
 import HiperModules from '../components/HiperModules';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLoading } from '@/contexts/LoadingContext';
 
 const Hiper: React.FC = () => {
   const { toast } = useToast();
   const { isAdmin, userSystem, loading: authLoading } = useAuth();
+  const { startPageTransition, finishPageTransition } = useLoading();
   const navigate = useNavigate();
 
   // Verificar acesso à página
   useEffect(() => {
     if (!authLoading && !isAdmin && userSystem && userSystem !== 'hiper') {
+      startPageTransition();
       toast({
         title: 'Acesso Negado',
         description: 'Você só pode acessar tutoriais do seu sistema.',
         variant: 'destructive',
       });
       navigate('/');
+    } else {
+      finishPageTransition();
     }
-  }, [isAdmin, userSystem, authLoading, navigate, toast]);
+  }, [isAdmin, userSystem, authLoading, navigate, toast, startPageTransition, finishPageTransition]);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 transition-colors duration-200">

@@ -209,60 +209,111 @@ const Header = () => {
             <div className="md:hidden">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-2">
-                    <Menu className="h-5 w-5" />
+                  <Button variant="ghost" size="sm" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg touch-target">
+                    <Menu className="h-6 w-6 text-gray-600 dark:text-gray-400" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-80 bg-white dark:bg-gray-900">
+                <SheetContent side="right" className="w-80 p-0 bg-white dark:bg-gray-900">
                   <div className="flex flex-col h-full">
-                    {/* User Info */}
-                    <div className="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+                    {/* Header do menu mobile */}
+                    <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                          <User className="h-6 w-6 text-white" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">NH</span>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-white text-sm">
-                            {user?.email}
+                          <h2 className="font-bold text-lg text-gray-900 dark:text-white">NexHub</h2>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">Centro de Tutoriais</p>
+                        </div>
+                      </div>
+                      
+                      {/* Info do usuário no mobile */}
+                      {user && (
+                        <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {user.email}
                           </p>
                           {isAdmin && (
-                            <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold">
+                            <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold mt-1">
                               Administrador
                             </p>
                           )}
                           {userSystem && !isAdmin && (
-                            <p className="text-xs font-medium" style={{ color: getSystemColor(userSystem) }}>
-                              Sistema: {getSystemName(userSystem)}
-                            </p>
+                            <div className="flex items-center mt-2">
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs border-2 font-semibold"
+                                style={{ 
+                                  borderColor: getSystemColor(userSystem),
+                                  color: getSystemColor(userSystem)
+                                }}
+                              >
+                                {getSystemName(userSystem)}
+                              </Badge>
+                            </div>
                           )}
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Navigation */}
-                    <nav className="flex-1 space-y-2">
-                      {menuItems.map((item) => (
-                        <Link
-                          key={item.path}
-                          to={item.path}
-                          className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                        >
-                          <item.icon className="h-5 w-5" />
-                          <span>{item.label}</span>
-                        </Link>
-                      ))}
+                    {/* Navigation items */}
+                    <nav className="flex-1 px-6 py-4">
+                      <div className="space-y-2">
+                        {menuItems.map((item) => (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 font-medium touch-target group"
+                          >
+                            <item.icon className="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                            <span className="group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              {item.label}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
                     </nav>
 
-                    {/* Logout */}
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                      <Button
-                        onClick={handleSignOut}
-                        variant="ghost"
-                        className="w-full justify-start text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sair
-                      </Button>
+                    {/* Theme toggle e notificações no mobile */}
+                    <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tema</span>
+                        <ThemeToggle />
+                      </div>
+                      
+                      {user && (
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Notificações</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg touch-target"
+                            onClick={() => setIsNotificationOpen(true)}
+                          >
+                            <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                            {unreadCount > 0 && (
+                              <Badge 
+                                variant="destructive" 
+                                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                              >
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                              </Badge>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Logout no mobile */}
+                      {user && (
+                        <Button
+                          onClick={handleSignOut}
+                          variant="outline"
+                          className="w-full text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 touch-target"
+                        >
+                          <LogOut className="mr-2 h-4 w-4" />
+                          Sair
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </SheetContent>
@@ -272,10 +323,10 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Painel de Notificações */}
+      {/* Notification Panel */}
       <NotificationPanel 
-        isOpen={isNotificationOpen}
-        onClose={() => setIsNotificationOpen(false)}
+        isOpen={isNotificationOpen} 
+        onClose={() => setIsNotificationOpen(false)} 
       />
     </header>
   );

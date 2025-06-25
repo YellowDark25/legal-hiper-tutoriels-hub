@@ -10,7 +10,9 @@ import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogOverlay } from
 import { MESSAGES } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLoading } from '@/contexts/LoadingContext';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '../components/ui/pagination';
+import { Loading } from '@/components/ui/loading';
 import videosData from '@/data/videos-pdvlegal.json';
 
 
@@ -31,6 +33,7 @@ const PDVLegal: React.FC = () => {
   const [itemsPerPage] = useState(10);
   const { toast } = useToast();
   const { isAdmin, userSystem, loading: authLoading } = useAuth();
+  const { setPageLoading } = useLoading();
   const navigate = useNavigate();
 
   // Verificar acesso à página
@@ -50,6 +53,7 @@ const PDVLegal: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setPageLoading(true);
         setError(null);
 
         // Buscar dados do Supabase
@@ -78,6 +82,7 @@ const PDVLegal: React.FC = () => {
         });
       } finally {
         setLoading(false);
+        setPageLoading(false);
       }
     };
 
@@ -151,10 +156,7 @@ const PDVLegal: React.FC = () => {
       <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
         <Header />
         <main className="flex-1 pt-16 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-300">Carregando tutoriais...</p>
-          </div>
+          <Loading size="lg" variant="spinner" text="Carregando tutoriais PDVLegal..." />
         </main>
         <Footer />
       </div>
@@ -167,7 +169,7 @@ const PDVLegal: React.FC = () => {
       <main className="flex-1 pt-16">
         {/* Hero Section */}
         <section 
-          className="relative py-20 text-white overflow-hidden"
+          className="relative py-12 md:py-20 text-white overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)'
           }}
@@ -182,12 +184,12 @@ const PDVLegal: React.FC = () => {
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
               {/* Logo e Título */}
-              <div className="flex flex-col md:flex-row items-center justify-center mb-8">
-                <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border border-white/20 mb-4 md:mb-0 md:mr-6 flex items-center justify-center min-w-[80px] min-h-[80px]">
+              <div className="flex flex-col sm:flex-row items-center justify-center mb-6 md:mb-8">
+                <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border border-white/20 mb-4 sm:mb-0 sm:mr-6 flex items-center justify-center min-w-[60px] min-h-[60px] md:min-w-[80px] md:min-h-[80px]">
                   <img 
                     src="/pdv-legal-BLWLrCAG.png" 
                     alt="PDVLegal Logo" 
-                    className="w-12 h-12 object-contain animate-bounce-slow"
+                    className="w-8 h-8 md:w-12 md:h-12 object-contain animate-bounce-slow"
                     onError={(e) => {
                       console.error('Erro ao carregar logo PDVLegal:', e);
                       // Fallback: mostrar um ícone SVG se a imagem não carregar
@@ -199,405 +201,290 @@ const PDVLegal: React.FC = () => {
                     }}
                     onLoad={() => console.log('Logo PDVLegal carregada com sucesso')}
                   />
-                  {/* Fallback icon */}
+                  {/* Fallback Icon */}
                   <svg 
-                    className="fallback-icon w-12 h-12 text-white hidden animate-bounce-slow" 
+                    className="fallback-icon w-8 h-8 md:w-12 md:h-12 text-blue-200 hidden" 
                     fill="currentColor" 
                     viewBox="0 0 24 24"
                   >
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <path d="M6 8h12v2H6zm0 4h8v2H6z"/>
                   </svg>
                 </div>
-                <div className="text-center md:text-left">
-                  <h1 className="text-4xl md:text-6xl font-bold mb-2">
-                    PDVLegal
+                <div className="text-center sm:text-left">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold mb-2">
+                    Tutoriais PDVLegal
                   </h1>
-                  <div className="w-24 h-1 bg-white/50 mx-auto md:mx-0 rounded-full"></div>
+                  <div className="w-16 h-1 bg-white/50 mx-auto sm:mx-0 rounded-full"></div>
                 </div>
               </div>
-              
-              <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto leading-relaxed">
-                Domine todas as funcionalidades do sistema de PDV mais completo do mercado
+
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 md:mb-8 text-blue-100 max-w-3xl mx-auto leading-relaxed px-4">
+                Aprenda a usar todas as funcionalidades do sistema PDVLegal
               </p>
-              
-              {/* Estatísticas */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <div className="flex items-center justify-center mb-2">
-                    <div className="bg-white/20 rounded-full p-3">
-                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-white">{videos.length}</div>
-                  <div className="text-blue-100 text-sm">Tutoriais</div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-2xl mx-auto mb-6 md:mb-8">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 text-center">
+                  <div className="text-xl md:text-2xl font-bold text-white mb-1">{videos.length}</div>
+                  <div className="text-xs md:text-sm text-blue-100">Tutoriais</div>
                 </div>
-                
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <div className="flex items-center justify-center mb-2">
-                    <div className="bg-white/20 rounded-full p-3">
-                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold text-white">100%</div>
-                  <div className="text-blue-100 text-sm">Prático</div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 text-center">
+                  <div className="text-xl md:text-2xl font-bold text-white mb-1">{categories.length}</div>
+                  <div className="text-xs md:text-sm text-blue-100">Categorias</div>
                 </div>
-                
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-                  <div className="flex items-center justify-center mb-2">
-                    <div className="bg-white/20 rounded-full p-3">
-                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      </svg>
-                    </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 text-center sm:col-span-2 lg:col-span-1">
+                  <div className="text-xl md:text-2xl font-bold text-white mb-1">
+                    {videos.reduce((acc, video) => acc + (video.visualizacoes || 0), 0)}
                   </div>
-                  <div className="text-2xl font-bold text-white">Sempre</div>
-                  <div className="text-blue-100 text-sm">Atualizado</div>
+                  <div className="text-xs md:text-sm text-blue-100">Visualizações</div>
                 </div>
               </div>
             </div>
           </div>
-          
-          {/* Decorative Elements */}
-          <div className="absolute top-10 left-10 w-20 h-20 bg-white/5 rounded-full blur-xl"></div>
-          <div className="absolute bottom-10 right-10 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
         </section>
 
-        {/* Search and Filter Section */}
-        <section className="py-12 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 transition-colors duration-200">
+        {/* Filters Section */}
+        <section className="py-6 md:py-8 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Encontre o tutorial perfeito
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Use os filtros abaixo para encontrar exatamente o que você precisa
-                </p>
-              </div>
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center">
               
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
-                <div className="flex flex-col md:flex-row gap-6 items-center">
-                  {/* Search */}
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      placeholder="Digite o que você está procurando..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-12 pr-4 py-4 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
-                    />
-                    <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  
-                  {/* Filter Button */}
-                  <button
-                    onClick={() => setIsFilterOpen(true)}
-                    className="flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 019 18v-4.586a1 1 0 00-.293-.707L2.293 6.707A1 1 0 012 6V4z" />
-                    </svg>
-                    Filtros Avançados
-                  </button>
+              {/* Search Bar */}
+              <div className="w-full md:flex-1">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Buscar tutoriais..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-4 py-2 md:py-3 pl-10 pr-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm md:text-base"
+                  />
+                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
                 </div>
-                
-                {/* Active Filters Display */}
+              </div>
+
+              {/* Mobile Filter Toggle */}
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="md:hidden flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors touch-target"
+              >
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
+                </svg>
+                Filtros
+              </button>
+
+              {/* Desktop Filters */}
+              <div className="hidden md:flex items-center gap-4">
+                {/* Category Filter */}
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm cursor-pointer touch-target"
+                >
+                  {filterCategories.map(category => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Clear Filters */}
                 {(selectedCategory !== 'Todas' || selectedTags.length > 0 || searchTerm) && (
-                  <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300 mr-2">
-                        Filtros ativos:
-                      </span>
-                      
-                      {searchTerm && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                          Busca: "{searchTerm}"
-                          <button
-                            onClick={() => setSearchTerm('')}
-                            className="ml-1 hover:text-blue-600 dark:hover:text-blue-300"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )}
-                      
-                      {selectedCategory !== 'Todas' && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                          {selectedCategory}
-                          <button
-                            onClick={() => setSelectedCategory('Todas')}
-                            className="ml-1 hover:text-green-600 dark:hover:text-green-300"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      )}
-                      
-                      {selectedTags.map(tagId => {
-                        const tag = tags.find(t => t.id === tagId);
-                        return tag ? (
-                          <span key={tagId} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-                            {tag.nome}
-                            <button
-                              onClick={() => setSelectedTags(selectedTags.filter(id => id !== tagId))}
-                              className="ml-1 hover:text-purple-600 dark:hover:text-purple-300"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ) : null;
-                      })}
-                      
-                      <button
-                        onClick={clearFilters}
-                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 underline ml-2"
-                      >
-                        Limpar todos
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    onClick={clearFilters}
+                    className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors touch-target"
+                  >
+                    Limpar
+                  </button>
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Filter Modal */}
-          <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-            <DialogOverlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" />
-            <DialogContent className="fixed left-1/2 top-1/2 z-50 max-w-2xl w-full -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center mb-8">
-                <div className="bg-blue-100 dark:bg-blue-900 rounded-full p-3 mr-4">
-                  <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707l-6.414 6.414A1 1 0 0013 13.414V19a1 1 0 01-1.447.894l-2-1A1 1 0 019 18v-4.586a1 1 0 00-.293-.707L2.293 6.707A1 1 0 012 6V4z" />
-                  </svg>
-                </div>
-                <div>
-                  <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">Filtros Avançados</DialogTitle>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm">Refine sua busca para encontrar o conteúdo ideal</p>
-                </div>
-              </div>
-              
-              {/* Categoria */}
-              <div className="mb-8">
-                <label className="block text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
-                  </svg>
-                  Categoria
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {filterCategories.map(category => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 border-2 ${
-                        selectedCategory === category
-                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white border-blue-600 shadow-lg scale-105'
-                          : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500'
-                      }`}
+            {/* Mobile Filters Dropdown */}
+            {isFilterOpen && (
+              <div className="md:hidden mt-4 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg animate-fade-in">
+                <div className="space-y-4">
+                  {/* Category Filter Mobile */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Categoria
+                    </label>
+                    <select
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
                     >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Tags */}
-              <div className="mb-8">
-                <label className="block text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M5.5 7A1.5 1.5 0 004 5.5V4a2 2 0 012-2h1.5A1.5 1.5 0 009 3.5V4h6v-.5A1.5 1.5 0 0116.5 2H18a2 2 0 012 2v1.5A1.5 1.5 0 0118.5 7H18v10h.5a1.5 1.5 0 011.5 1.5V20a2 2 0 01-2 2h-1.5a1.5 1.5 0 01-1.5-1.5V20H9v.5A1.5 1.5 0 017.5 22H6a2 2 0 01-2-2v-1.5A1.5 1.5 0 015.5 17H6V7h-.5z"/>
-                  </svg>
-                  Tags
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map(tag => (
-                    <button
-                      key={tag.id}
-                      onClick={() => setSelectedTags(selectedTags.includes(tag.id)
-                        ? selectedTags.filter(id => id !== tag.id)
-                        : [...selectedTags, tag.id])}
-                      className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 border-2 ${
-                        selectedTags.includes(tag.id)
-                          ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white border-purple-600 shadow-lg scale-105'
-                          : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500'
-                      }`}
-                    >
-                      {tag.nome}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex justify-end gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
-                <button
-                  onClick={clearFilters}
-                  className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 border border-gray-300 dark:border-gray-600"
-                >
-                  Limpar Filtros
-                </button>
-                <button
-                  onClick={() => setIsFilterOpen(false)}
-                  className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-                >
-                  Aplicar Filtros
-                </button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </section>
+                      {filterCategories.map(category => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-        {/* Videos Grid */}
-        <section className="py-16 bg-gray-50 dark:bg-gray-900">
-          <div className="container mx-auto px-4">
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-r-lg p-6 mb-8 shadow-sm">
-                <div className="flex items-center">
-                  <svg className="w-6 h-6 text-red-500 mr-3" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                  </svg>
-                  <p className="text-red-800 dark:text-red-400 font-medium">{error}</p>
+                  {/* Tags Filter Mobile */}
+                  {tags.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Tags
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {tags.slice(0, 6).map((tag) => (
+                          <label key={tag.id} className="flex items-center space-x-2 cursor-pointer touch-target-sm">
+                            <input
+                              type="checkbox"
+                              checked={selectedTags.includes(tag.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedTags([...selectedTags, tag.id]);
+                                } else {
+                                  setSelectedTags(selectedTags.filter(id => id !== tag.id));
+                                }
+                              }}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                              {tag.nome}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Clear Filters Mobile */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={clearFilters}
+                      className="text-sm text-red-600 hover:text-red-700 transition-colors touch-target"
+                    >
+                      Limpar filtros
+                    </button>
+                    <button
+                      onClick={() => setIsFilterOpen(false)}
+                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors touch-target"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
+          </div>
+        </section>
 
-            {filteredVideos.length === 0 ? (
-              <div className="text-center py-20">
-                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg border border-gray-200 dark:border-gray-700 p-12 max-w-md mx-auto">
-                  <div className="bg-blue-100 dark:bg-blue-900 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Nenhum tutorial encontrado</h3>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6">Tente ajustar seus filtros de busca ou remover alguns critérios</p>
+        {/* Videos Grid */}
+        <section className="py-8 md:py-12 bg-white dark:bg-gray-900">
+          <div className="container mx-auto px-4">
+            {error ? (
+              <div className="text-center py-12">
+                <div className="text-6xl mb-4">😞</div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  Erro ao carregar tutoriais
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors touch-target"
+                >
+                  Tentar novamente
+                </button>
+              </div>
+            ) : filteredVideos.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-4xl md:text-6xl mb-4">🔍</div>
+                <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  Nenhum tutorial encontrado
+                </h3>
+                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-4">
+                  Tente ajustar seus filtros de busca
+                </p>
+                {(selectedCategory !== 'Todas' || selectedTags.length > 0 || searchTerm) && (
                   <button
                     onClick={clearFilters}
-                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                    className="px-4 md:px-6 py-2 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base touch-target"
                   >
-                    Limpar Filtros
+                    Limpar filtros
                   </button>
-                </div>
+                )}
               </div>
             ) : (
               <>
                 {/* Results Header */}
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      Tutoriais Encontrados
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+                      Tutoriais PDVLegal
                     </h2>
-                    <p className="text-gray-600 dark:text-gray-300">
-                      {filteredVideos.length} tutorial{filteredVideos.length !== 1 ? 's' : ''} 
-                      {searchTerm && ` para "${searchTerm}"`}
-                      {selectedCategory !== 'Todas' && ` em ${selectedCategory}`}
+                    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
+                      {filteredVideos.length} tutorial{filteredVideos.length !== 1 ? 's' : ''} encontrado{filteredVideos.length !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Mostrando {startIndex + 1} a {Math.min(endIndex, filteredVideos.length)} de {filteredVideos.length} resultado{filteredVideos.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="bg-blue-100 dark:bg-blue-900 rounded-full px-4 py-2 inline-block mb-2">
-                      <span className="text-blue-800 dark:text-blue-200 font-semibold text-sm">
-                        {filteredVideos.length} de {videos.length}
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Página {currentPage} de {totalPages}
-                    </div>
                   </div>
                 </div>
 
                 {/* Videos Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                  {paginatedVideos.map((video, index) => (
-                    <div 
-                      key={video.id} 
-                      className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl border border-gray-200 dark:border-gray-700 hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 overflow-hidden group"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <VideoCard
-                        video={video}
-                        onVideoClick={handleVideoClick}
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
+                  {paginatedVideos.map((video) => (
+                    <VideoCard
+                      key={video.id}
+                      video={video}
+                      onVideoClick={handleVideoClick}
+                    />
                   ))}
                 </div>
 
-                {/* Componente de Paginação */}
+                {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex justify-center mt-12">
+                  <div className="mt-8 md:mt-12 flex justify-center">
                     <Pagination>
                       <PaginationContent>
                         <PaginationItem>
                           <PaginationPrevious 
-                            href="#"
+                            href="#" 
                             onClick={(e) => {
                               e.preventDefault();
                               if (currentPage > 1) setCurrentPage(currentPage - 1);
                             }}
-                            className={`${currentPage === 1 
-                              ? 'pointer-events-none opacity-50 text-gray-400' 
-                              : 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
-                            }`}
+                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'touch-target'}
                           />
                         </PaginationItem>
                         
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                          // Mostrar apenas páginas próximas à atual
-                          if (
-                            page === 1 || 
-                            page === totalPages || 
-                            (page >= currentPage - 2 && page <= currentPage + 2)
-                          ) {
-                            return (
-                              <PaginationItem key={page}>
-                                <PaginationLink
-                                  href="#"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    setCurrentPage(page);
-                                  }}
-                                  isActive={currentPage === page}
-                                  className={currentPage === page 
-                                    ? 'bg-blue-600 border-blue-600 text-white hover:bg-blue-700' 
-                                    : 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 border-gray-300 dark:border-gray-600'
-                                  }
-                                >
-                                  {page}
-                                </PaginationLink>
-                              </PaginationItem>
-                            );
-                          } else if (
-                            page === currentPage - 3 || 
-                            page === currentPage + 3
-                          ) {
-                            return (
-                              <PaginationItem key={page}>
-                                <PaginationEllipsis className="text-gray-400 dark:text-gray-500" />
-                              </PaginationItem>
-                            );
-                          }
-                          return null;
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          const pageNumber = i + 1;
+                          return (
+                            <PaginationItem key={pageNumber}>
+                              <PaginationLink
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setCurrentPage(pageNumber);
+                                }}
+                                isActive={currentPage === pageNumber}
+                                className="touch-target"
+                              >
+                                {pageNumber}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
                         })}
                         
+                        {totalPages > 5 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                        
                         <PaginationItem>
-                          <PaginationNext
-                            href="#"
+                          <PaginationNext 
+                            href="#" 
                             onClick={(e) => {
                               e.preventDefault();
                               if (currentPage < totalPages) setCurrentPage(currentPage + 1);
                             }}
-                            className={`${currentPage === totalPages 
-                              ? 'pointer-events-none opacity-50 text-gray-400' 
-                              : 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
-                            }`}
+                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'touch-target'}
                           />
                         </PaginationItem>
                       </PaginationContent>

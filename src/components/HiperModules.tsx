@@ -188,6 +188,22 @@ const HiperModules: React.FC = () => {
     fetchModulesData();
   };
 
+  // Escutar quando vídeos são marcados como assistidos para atualizar módulos
+  useEffect(() => {
+    const handleVideoWatched = () => {
+      // Aguardar um pouco para o banco ser atualizado, então recarregar dados
+      setTimeout(() => {
+        fetchModulesData();
+      }, 1000);
+    };
+
+    window.addEventListener('videoWatched', handleVideoWatched);
+    
+    return () => {
+      window.removeEventListener('videoWatched', handleVideoWatched);
+    };
+  }, []);
+
   const toggleModule = (moduleId: string) => {
     const newExpanded = new Set(expandedModules);
     if (newExpanded.has(moduleId)) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -14,137 +14,160 @@ interface ModuleStats {
 }
 
 interface ProgressStats {
+  geral: {
   totalVideos: number;
-  completedVideos: number;
-  overallPercentage: number;
-  moduleStats: ModuleStats[];
-  recentActivity: {
-    videoTitle: string;
+    videosAssistidos: number;
+    videosRestantes: number;
+    percentualCompleto: number;
+  };
+  categorias: Array<{
+    nome: string;
+    total: number;
+    assistidos: number;
+    percentual: number;
+  }>;
+  modulos: Array<{
+    nome: string;
+    total: number;
+    assistidos: number;
+    percentual: number;
+  }>;
+  atividadeRecente: number;
+  ultimosAssistidos: Array<{
+    videoId: string;
     watchedAt: string;
-  }[];
+    titulo: string;
+  }>;
 }
 
-export const useProgressStats = () => {
-  const { user } = useAuth();
+export function useProgressStats() {
+  const { user, userSystem } = useAuth();
   const [stats, setStats] = useState<ProgressStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const lastFetchRef = useRef<number>(0);
 
-  useEffect(() => {
-    if (user) {
-      fetchProgressStats();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchProgressStats = async () => {
+  const fetchProgressStats = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      if (!user || !userSystem) return;
 
-      if (!user) return;
+      console.log('Carregando estatísticas de progresso para:', { userId: user.id, sistema: userSystem });
 
-      // Buscar todos os vídeos do sistema do usuário com tags e categorias
+      // Buscar todos os vídeos do sistema do usuário
       const { data: videosData, error: videosError } = await supabase
         .from('videos')
-        .select(`
-          id,
-          titulo,
-          sistema,
-          categoria:categorias(nome),
-          video_tags!inner(
-            tag:tags(nome)
-          )
-        `)
-        .eq('sistema', user.user_metadata?.sistema || 'hiper')
+        .select('id, titulo, sistema, categoria:categorias(nome), video_tags!inner(tag:tags(nome))')
+        .eq('sistema', userSystem)
         .eq('status', 'ativo');
-
       if (videosError) throw videosError;
 
-      // Buscar histórico de vídeos assistidos pelo usuário
-      const { data: historyData, error: historyError } = await supabase
+      // Buscar progresso do usuário
+      const { data: progressoData, error: progressoError } = await supabase
         .from('video_history')
-        .select(`
-          video_id,
-          completed,
-          updated_at,
-          videos(titulo)
-        `)
+        .select('video_id, watched_at')
         .eq('user_id', user.id)
         .eq('completed', true)
-        .order('updated_at', { ascending: false });
-
-      if (historyError) throw historyError;
-
-      const watchedVideoIds = historyData?.map(h => h.video_id) || [];
-
-      // Organizar estatísticas por módulos (apenas para Hiper)
-      let moduleStats: ModuleStats[] = [];
-      
-      if (user.user_metadata?.sistema === 'hiper') {
-        const modules = [
-          { name: 'Hiper Gestão', tagName: 'Hiper Gestão' },
-          { name: 'Hiper Loja', tagName: 'Hiper Loja' },
-          { name: 'Hiper Caixa', tagName: 'Hiper Caixa' }
-        ];
-
-        moduleStats = modules.map(module => {
-          const moduleVideos = videosData?.filter(video => 
-            video.video_tags.some((vt: any) => vt.tag.nome === module.tagName)
-          ) || [];
-
-          const completedVideos = moduleVideos.filter(video => 
-            watchedVideoIds.includes(video.id)
-          );
-
-          // Último vídeo assistido do módulo
-          const lastWatchedHistory = historyData?.find(h => 
-            moduleVideos.some(v => v.id === h.video_id)
-          );
-
-          return {
-            moduleName: module.name,
-            totalVideos: moduleVideos.length,
-            completedVideos: completedVideos.length,
-            percentage: moduleVideos.length > 0 ? (completedVideos.length / moduleVideos.length) * 100 : 0,
-            lastWatched: lastWatchedHistory ? {
-              videoTitle: (lastWatchedHistory as any).videos?.titulo || 'Vídeo não encontrado',
-              watchedAt: lastWatchedHistory.updated_at
-            } : undefined
-          };
-        });
-      }
-
-      // Atividade recente (últimos 5 vídeos)
-      const recentActivity = historyData?.slice(0, 5).map(h => ({
-        videoTitle: (h as any).videos?.titulo || 'Vídeo não encontrado',
-        watchedAt: h.updated_at
-      })) || [];
+        .order('watched_at', { ascending: false });
+      if (progressoError) throw progressoError;
 
       const totalVideos = videosData?.length || 0;
-      const completedVideos = watchedVideoIds.length;
+      const videosAssistidos = progressoData?.length || 0;
+      const percentualGeral = totalVideos > 0 ? Math.round((videosAssistidos / totalVideos) * 100) : 0;
 
-      setStats({
+      // Progresso por categoria
+      const categorias = videosData?.reduce((acc: any, video: any) => {
+        const categoriaNome = video.categoria?.nome || 'Sem categoria';
+        if (!acc[categoriaNome]) {
+          acc[categoriaNome] = { total: 0, assistidos: 0 };
+        }
+        acc[categoriaNome].total++;
+        
+        if (progressoData?.some(p => p.video_id === video.id)) {
+          acc[categoriaNome].assistidos++;
+        }
+        
+        return acc;
+      }, {}) || {};
+
+      // Progresso por módulo/tag
+      const modulos = videosData?.reduce((acc: any, video: any) => {
+        video.video_tags?.forEach((vt: any) => {
+          const tagNome = vt.tag?.nome || 'Sem tag';
+          if (!acc[tagNome]) {
+            acc[tagNome] = { total: 0, assistidos: 0 };
+          }
+          acc[tagNome].total++;
+          
+          if (progressoData?.some(p => p.video_id === video.id)) {
+            acc[tagNome].assistidos++;
+          }
+        });
+        return acc;
+      }, {}) || {};
+
+      // Atividade recente (últimos 7 dias)
+      const seteDiasAtras = new Date();
+      seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
+      
+      const atividadeRecente = progressoData?.filter(p => 
+        new Date(p.watched_at) >= seteDiasAtras
+      ).length || 0;
+
+      const stats = {
+        geral: {
         totalVideos,
-        completedVideos,
-        overallPercentage: totalVideos > 0 ? (completedVideos / totalVideos) * 100 : 0,
-        moduleStats,
-        recentActivity
-      });
+          videosAssistidos,
+          videosRestantes: totalVideos - videosAssistidos,
+          percentualCompleto: percentualGeral,
+        },
+        categorias: Object.entries(categorias).map(([nome, dados]: [string, any]) => ({
+          nome,
+          total: dados.total,
+          assistidos: dados.assistidos,
+          percentual: dados.total > 0 ? Math.round((dados.assistidos / dados.total) * 100) : 0,
+        })),
+        modulos: Object.entries(modulos).map(([nome, dados]: [string, any]) => ({
+          nome,
+          total: dados.total,
+          assistidos: dados.assistidos,
+          percentual: dados.total > 0 ? Math.round((dados.assistidos / dados.total) * 100) : 0,
+        })),
+        atividadeRecente,
+        ultimosAssistidos: progressoData?.slice(0, 5).map(p => ({
+          videoId: p.video_id,
+          watchedAt: p.watched_at,
+          titulo: videosData?.find(v => v.id === p.video_id)?.titulo || 'Vídeo não encontrado'
+        })) || []
+      };
 
+      console.log('Estatísticas calculadas:', stats);
+      setStats(stats);
     } catch (error) {
-      console.error('Erro ao buscar estatísticas de progresso:', error);
-      setError(error instanceof Error ? error.message : 'Erro desconhecido');
+      console.error('Erro ao carregar estatísticas:', error);
+      setError(error as Error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, userSystem]);
 
-  return {
-    stats,
-    loading,
-    error,
-    refetch: fetchProgressStats
-  };
-}; 
+  // Throttle da função de refetch para evitar calls excessivos
+  const refetch = useCallback(() => {
+    const now = Date.now();
+    if (lastFetchRef.current && now - lastFetchRef.current < 2000) {
+      // Evita refetch se foi feito há menos de 2 segundos
+      return;
+    }
+    lastFetchRef.current = now;
+    fetchProgressStats();
+  }, [fetchProgressStats]);
+
+  useEffect(() => {
+    if (user && userSystem) {
+      fetchProgressStats();
+    }
+  }, [fetchProgressStats]);
+
+  return { stats, loading, error, refetch };
+} 

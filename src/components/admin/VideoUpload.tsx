@@ -223,7 +223,7 @@ const VideoUpload = () => {
           url: publicUrl,
           video_path: videoData.path,
           thumbnail_path: thumbnailPath,
-          created_by: currentUserId // Usar o ID do usuário autenticado
+          created_by: currentUserId // Necessário para a política RLS
         }])
         .select()
         .single();
