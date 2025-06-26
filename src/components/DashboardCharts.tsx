@@ -71,7 +71,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ completedVideo
               plugins: { legend: { labels: { color: '#fff', font: { size: 14 } } } },
               scales: {
                 x: { ticks: { color: '#fff' } },
-                y: { ticks: { color: '#fff' }, beginAtZero: true, precision: 0 }
+                y: { ticks: { color: '#fff' }, beginAtZero: true }
               }
             }} />
           </div>

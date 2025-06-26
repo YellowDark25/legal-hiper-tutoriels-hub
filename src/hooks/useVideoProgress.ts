@@ -15,12 +15,19 @@ export function useVideoProgress(userId?: string) {
     try {
       console.log('Marcando vídeo como assistido:', { videoId, videoTitle, userId });
       
+      // Verificar se videoId é um UUID válido
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(videoId)) {
+        console.error('ID do vídeo não é um UUID válido:', videoId);
+        throw new Error('ID do vídeo inválido');
+      }
+      
       const { data, error } = await supabase.from('video_history').upsert({
-      user_id: userId,
-      video_id: videoId,
+        user_id: userId,
+        video_id: videoId,
         video_titulo: videoTitle || 'Título não disponível',
         video_categoria: videoCategoria || null,
-      watched_at: new Date().toISOString(),
+        watched_at: new Date().toISOString(),
         watch_duration: watchDuration || null,
         completed: true,
       }, { 
@@ -40,7 +47,7 @@ export function useVideoProgress(userId?: string) {
         detail: { videoId, videoTitle, videoCategoria, userId } 
       }));
       
-      // Também usar localStorage para persistir a informação
+      // Também usar localStorage para persistir a informação como backup
       const watchedVideos = JSON.parse(localStorage.getItem(`watchedVideos_${userId}`) || '[]');
       if (!watchedVideos.includes(videoId)) {
         watchedVideos.push(videoId);
@@ -54,40 +61,55 @@ export function useVideoProgress(userId?: string) {
   }, [userId]);
 
   // Consulta IDs dos vídeos assistidos pelo usuário
-  const getWatchedVideos = useCallback(async () => {
+  const getWatchedVideos = useCallback(async (): Promise<string[]> => {
     if (!userId) return [];
+    
     try {
-    const { data, error } = await supabase
+      const { data, error } = await supabase
         .from('video_history')
-      .select('video_id')
-      .eq('user_id', userId)
+        .select('video_id')
+        .eq('user_id', userId)
         .eq('completed', true);
+        
       if (error) {
         console.error('Erro ao buscar vídeos assistidos:', error);
-        return [];
+        // Fallback para localStorage em caso de erro
+        const localWatched = JSON.parse(localStorage.getItem(`watchedVideos_${userId}`) || '[]');
+        return localWatched;
       }
-    return data.map((row: { video_id: string }) => row.video_id);
+      
+      const watchedIds = data.map((row: { video_id: string }) => row.video_id);
+      
+      // Sincronizar com localStorage
+      localStorage.setItem(`watchedVideos_${userId}`, JSON.stringify(watchedIds));
+      
+      return watchedIds;
     } catch (error) {
       console.error('Erro ao buscar vídeos assistidos:', error);
-      return [];
+      // Fallback para localStorage em caso de erro
+      const localWatched = JSON.parse(localStorage.getItem(`watchedVideos_${userId}`) || '[]');
+      return localWatched;
     }
   }, [userId]);
 
   // Consulta progresso de um módulo (array de videoIds)
-  const getModuleProgress = useCallback(async (videoIds: string[]) => {
+  const getModuleProgress = useCallback(async (videoIds: string[]): Promise<number> => {
     if (!userId || !videoIds.length) return 0;
+    
     try {
-    const { data, error } = await supabase
+      const { data, error } = await supabase
         .from('video_history')
-      .select('video_id')
-      .eq('user_id', userId)
+        .select('video_id')
+        .eq('user_id', userId)
         .eq('completed', true)
-      .in('video_id', videoIds);
+        .in('video_id', videoIds);
+        
       if (error) {
         console.error('Erro ao buscar progresso do módulo:', error);
         return 0;
       }
-    return data.length;
+      
+      return data.length;
     } catch (error) {
       console.error('Erro ao buscar progresso do módulo:', error);
       return 0;
@@ -97,6 +119,13 @@ export function useVideoProgress(userId?: string) {
   // Atualiza duração assistida com throttling para evitar muitas requisições
   const updateWatchDuration = useCallback(async (videoId: string, duration: number, videoTitle?: string) => {
     if (!userId) return;
+    
+    // Verificar se videoId é um UUID válido
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(videoId)) {
+      console.error('ID do vídeo não é um UUID válido para updateWatchDuration:', videoId);
+      return;
+    }
     
     const key = `${userId}_${videoId}`;
     const now = Date.now();

@@ -50,7 +50,8 @@ const Header = () => {
 
   // Menu items para mobile
   const menuItems = [
-    { icon: Home, label: 'Início', path: '/' },
+    // Dashboard só aparece para admins
+    ...(isAdmin ? [{ icon: Home, label: 'Dashboard', path: '/' }] : []),
     ...(isAdmin || !userSystem || userSystem === 'pdvlegal' 
       ? [{ icon: Monitor, label: 'PDVLegal', path: '/pdvlegal' }] 
       : []),
@@ -85,12 +86,15 @@ const Header = () => {
 
           {/* Navigation - Desktop */}
           <nav className="hidden md:flex items-center space-x-1">
+            {/* Dashboard só aparece para admins */}
+            {isAdmin && (
             <Link
               to="/"
               className="px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 font-medium"
             >
-              Início
+                Dashboard
             </Link>
+            )}
             
             {(isAdmin || !userSystem || userSystem === 'pdvlegal') && (
               <Link

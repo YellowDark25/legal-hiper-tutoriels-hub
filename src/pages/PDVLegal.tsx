@@ -1,138 +1,210 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { CheckCircle, PlayCircle, Settings, ShoppingCart, FileText, Users, DollarSign, Package, BarChart3, Archive, ClipboardList, User, CreditCard, FilePlus2, UploadCloud } from 'lucide-react';
+import VideoModal from '../components/VideoModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Video } from '@/types/global';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import VideoCard from '../components/VideoCard';
-import VideoModal from '../components/VideoModal';
-import { videoService, categoriaService, tagService } from '@/services/supabaseService';
-import { Video, Tag, Categoria } from '@/types/global';
-import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogOverlay } from '../components/ui/dialog';
-import { MESSAGES } from '@/lib/constants';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLoading } from '@/contexts/LoadingContext';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '../components/ui/pagination';
 import { Loading } from '@/components/ui/loading';
-import videosData from '@/data/videos-pdvlegal.json';
 
+interface ModuleProgress {
+  total: number;
+  completed: number;
+  percentage: number;
+}
 
-const PDVLegal: React.FC = () => {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [filteredVideos, setFilteredVideos] = useState<Video[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [categories, setCategories] = useState<Categoria[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('Todas');
-  const [searchTerm, setSearchTerm] = useState('');
+interface SubModule {
+  name: string;
+  icon: React.ReactNode;
+  categoryName: string;
+  videos: Video[];
+  progress: ModuleProgress;
+}
+
+interface Module {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  tagName: string;
+  subModules: SubModule[];
+  totalProgress: ModuleProgress;
+}
+
+const PDVLegalModules: React.FC = () => {
+  const { user } = useAuth();
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const { toast } = useToast();
-  const { isAdmin, userSystem, loading: authLoading } = useAuth();
-  const { setPageLoading } = useLoading();
-  const navigate = useNavigate();
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
 
-  // Verificar acesso à página
-  useEffect(() => {
-    if (!authLoading && !isAdmin && userSystem && userSystem !== 'pdvlegal') {
-      toast({
-        title: 'Acesso Negado',
-        description: 'Você só pode acessar tutoriais do seu sistema.',
-        variant: 'destructive',
-      });
-      navigate('/');
+  // Definição da estrutura dos módulos
+  const moduleStructure: Omit<Module, 'subModules' | 'totalProgress'>[] = [
+    {
+      id: 'pdv',
+      name: 'PDV',
+      description: 'Operações de vendas e configurações do PDV',
+      icon: <ShoppingCart className="w-6 h-6" />, // Vendas
+      color: 'from-blue-500 to-blue-700',
+      tagName: 'PDV'
+    },
+    {
+      id: 'retaguarda',
+      name: 'Retaguarda',
+      description: 'Gestão administrativa e financeira',
+      icon: <BarChart3 className="w-6 h-6" />,
+      color: 'from-green-500 to-green-700',
+      tagName: 'Retaguarda'
+    },
+    {
+      id: 'totem',
+      name: 'Totem',
+      description: 'Operações no Totem de autoatendimento',
+      icon: <Archive className="w-6 h-6" />,
+      color: 'from-purple-500 to-purple-700',
+      tagName: 'Totem'
+    },
+    {
+      id: 'invoicy',
+      name: 'Invoicy',
+      description: 'Emissão e exportação de documentos fiscais',
+      icon: <FilePlus2 className="w-6 h-6" />,
+      color: 'from-orange-500 to-orange-700',
+      tagName: 'Invoicy'
     }
-  }, [isAdmin, userSystem, authLoading, navigate, toast]);
+  ];
 
-  // Buscar dados iniciais
+  // Definição dos submódulos para cada módulo
+  const subModuleStructure: Record<string, Omit<SubModule, 'videos' | 'progress'>[]> = {
+    pdv: [
+      { name: 'Vendas', icon: <PlayCircle className="w-5 h-5" />, categoryName: 'Vendas' },
+      { name: 'Configurações', icon: <Settings className="w-5 h-5" />, categoryName: 'Configurações' }
+    ],
+    retaguarda: [
+      { name: 'Conta Assinada', icon: <CreditCard className="w-5 h-5" />, categoryName: 'Conta Assinada' },
+      { name: 'Estoque', icon: <Package className="w-5 h-5" />, categoryName: 'Estoque' },
+      { name: 'Relatorios', icon: <ClipboardList className="w-5 h-5" />, categoryName: 'Relatorios' },
+      { name: 'Produtos', icon: <Package className="w-5 h-5" />, categoryName: 'Produtos' },
+      { name: 'Clientes', icon: <User className="w-5 h-5" />, categoryName: 'Clientes' },
+      { name: 'Financeiro', icon: <DollarSign className="w-5 h-5" />, categoryName: 'Financeiro' }
+    ],
+    totem: [
+      { name: 'Produtos', icon: <Package className="w-5 h-5" />, categoryName: 'Produtos' }
+    ],
+    invoicy: [
+      { name: 'Emissão', icon: <FileText className="w-5 h-5" />, categoryName: 'Emissão' },
+      { name: 'Exportar Documentos', icon: <UploadCloud className="w-5 h-5" />, categoryName: 'Exportar Documentos' }
+    ]
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
+    fetchModulesData();
+    // eslint-disable-next-line
+  }, [user]);
+
+  const fetchModulesData = async () => {
       try {
         setLoading(true);
-        setPageLoading(true);
-        setError(null);
 
-        // Buscar dados do Supabase
-        const [videosFromDB, tagsData, categoriesData] = await Promise.all([
-          videoService.getVideosBySystem('pdvlegal'),
-          tagService.getAllTags(),
-          categoriaService.getAllCategorias()
-        ]);
+      // Buscar todos os vídeos do PDVLegal com suas tags e categorias
+      const { data: videosData, error: videosError } = await supabase
+        .from('videos')
+        .select(`
+          *,
+          categoria:categorias(id, nome, cor),
+          video_tags!inner(
+            tag:tags(nome)
+          )
+        `)
+        .eq('sistema', 'pdvlegal')
+        .eq('status', 'ativo');
 
-        console.log('Dados carregados:', { videosFromDB, tagsData, categoriesData });
+      if (videosError) throw videosError;
 
-        setVideos(videosFromDB);
-        setFilteredVideos(videosFromDB);
-        setTags(tagsData);
-        setCategories(categoriesData);
+      // Buscar progresso dos vídeos assistidos pelo usuário
+      let watchedVideos: string[] = [];
+      if (user) {
+        const { data: historyData, error: historyError } = await supabase
+          .from('video_history')
+          .select('video_id')
+          .eq('user_id', user.id)
+          .eq('completed', true);
 
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        const errorMsg = error instanceof Error ? error.message : MESSAGES.ERROR_GENERIC;
-        setError(errorMsg);
-        
-        toast({
-          title: 'Erro',
-          description: errorMsg,
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-        setPageLoading(false);
+        if (historyError) throw historyError;
+        watchedVideos = historyData?.map(h => h.video_id) || [];
       }
-    };
 
-    fetchData();
-  }, [toast]);
+      // Organizar vídeos por módulos e submódulos
+      const processedModules = moduleStructure.map(module => {
+        const moduleVideos = (videosData?.filter(video =>
+          video.video_tags.some((vt: any) => vt.tag.nome === module.tagName)
+        ) || []).map(video => ({
+          ...video,
+          sistema: (video.sistema === 'hiper' || video.sistema === 'pdvlegal') ? video.sistema as 'hiper' | 'pdvlegal' : 'pdvlegal',
+          status: (video.status === 'ativo' || video.status === 'inativo' || video.status === 'rascunho') ? video.status as 'ativo' | 'inativo' | 'rascunho' : 'ativo',
+          categoria: (() => {
+            if (video.categoria && typeof video.categoria === 'object') {
+              return {
+                id: 'id' in video.categoria ? String(video.categoria.id ?? '') : '',
+                nome: 'nome' in video.categoria ? video.categoria.nome ?? '' : '',
+                cor: 'cor' in video.categoria ? video.categoria.cor ?? '' : ''
+              };
+            }
+            if (typeof video.categoria === 'string') {
+              return video.categoria;
+            }
+            return { id: '', nome: '', cor: '' };
+          })(),
+        }));
 
-  // Categorias para filtro
-  const filterCategories = ['Todas', ...categories.map(cat => cat.nome)];
+        const subModules = subModuleStructure[module.id].map(subModule => {
+          const subModuleVideos = moduleVideos.filter(video =>
+            video.categoria && typeof video.categoria === 'object' && video.categoria.nome === subModule.categoryName
+          );
 
-  // Aplicar filtros
-  useEffect(() => {
-    let filtered = videos;
+          const completedCount = subModuleVideos.filter(video =>
+            watchedVideos.includes(video.id)
+          ).length;
 
-    if (searchTerm) {
-      filtered = filtered.filter(video =>
-        video.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        video.descricao?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+          return {
+            ...subModule,
+            videos: subModuleVideos,
+            progress: {
+              total: subModuleVideos.length,
+              completed: completedCount,
+              percentage: subModuleVideos.length > 0 ? (completedCount / subModuleVideos.length) * 100 : 0
+            }
+          };
+        });
 
-    if (selectedCategory !== 'Todas') {
-      filtered = filtered.filter(video => {
-        // Suporte para categoria como string ou objeto
-        const categoriaNome = typeof video.categoria === 'object' && video.categoria !== null && 'nome' in video.categoria
-          ? video.categoria.nome
-          : String(video.categoria);
-        return categoriaNome === selectedCategory;
+        // Calcular progresso total do módulo
+        const totalVideos = subModules.reduce((acc, sub) => acc + sub.progress.total, 0);
+        const totalCompleted = subModules.reduce((acc, sub) => acc + sub.progress.completed, 0);
+
+        return {
+          ...module,
+          subModules,
+          totalProgress: {
+            total: totalVideos,
+            completed: totalCompleted,
+            percentage: totalVideos > 0 ? (totalCompleted / totalVideos) * 100 : 0
+          }
+        };
       });
+
+      setModules(processedModules);
+    } catch (error) {
+      console.error('Erro ao carregar módulos:', error);
+    } finally {
+      setLoading(false);
     }
-
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(video => {
-        const videoTagIds = (video.tags || []).map(tag => tag.id);
-        return selectedTags.every(tagId => videoTagIds.includes(tagId));
-      });
-    }
-
-    setFilteredVideos(filtered);
-  }, [searchTerm, selectedCategory, selectedTags, videos]);
-
-  // Cálculos de paginação
-  const totalPages = Math.ceil(filteredVideos.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedVideos = filteredVideos.slice(startIndex, endIndex);
-
-  // Resetar página quando filtros mudarem
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedTags]);
+  };
 
   const handleVideoClick = (video: Video) => {
     setSelectedVideo(video);
@@ -142,23 +214,50 @@ const PDVLegal: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedVideo(null);
+    // Recarregar dados para atualizar progresso
+    fetchModulesData();
   };
 
-  const clearFilters = () => {
-    setSelectedCategory('Todas');
-    setSelectedTags([]);
-    setSearchTerm('');
-    setIsFilterOpen(false);
+  // Escutar quando vídeos são marcados como assistidos para atualizar módulos
+  useEffect(() => {
+    const handleVideoWatched = () => {
+      setTimeout(() => {
+        fetchModulesData();
+      }, 1000);
+    };
+    window.addEventListener('videoWatched', handleVideoWatched);
+    return () => {
+      window.removeEventListener('videoWatched', handleVideoWatched);
+    };
+    // eslint-disable-next-line
+  }, []);
+
+  const toggleModule = (moduleId: string) => {
+    const newExpanded = new Set(expandedModules);
+    if (newExpanded.has(moduleId)) {
+      newExpanded.delete(moduleId);
+    } else {
+      newExpanded.add(moduleId);
+    }
+    setExpandedModules(newExpanded);
+  };
+
+  // Função utilitária para obter a URL da miniatura (igual ao VideoCard)
+  const getThumbnailUrl = (video: Video): string => {
+    if (video.thumbnail_path) {
+      const { data } = supabase.storage.from('thumbnails').getPublicUrl(video.thumbnail_path);
+      return data?.publicUrl || '/placeholder.svg';
+    }
+    if (video.miniatura) {
+      return video.miniatura;
+    }
+    return '/placeholder.svg';
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-        <Header />
-        <main className="flex-1 pt-16 flex items-center justify-center">
-          <Loading size="lg" variant="spinner" text="Carregando tutoriais PDVLegal..." />
-        </main>
-        <Footer />
+      <div className="flex justify-center items-center py-20 min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Loading size="lg" variant="spinner" text="Carregando módulos..." />
       </div>
     );
   }
@@ -167,345 +266,145 @@ const PDVLegal: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <Header />
       <main className="flex-1 pt-16">
-        {/* Hero Section */}
-        <section 
-          className="relative py-12 md:py-20 text-white overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%)'
-          }}
-        >
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}></div>
-          </div>
-          
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-4xl mx-auto text-center">
-              {/* Logo e Título */}
-              <div className="flex flex-col sm:flex-row items-center justify-center mb-6 md:mb-8">
-                <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border border-white/20 mb-4 sm:mb-0 sm:mr-6 flex items-center justify-center min-w-[60px] min-h-[60px] md:min-w-[80px] md:min-h-[80px]">
-                  <img 
-                    src="/pdv-legal-BLWLrCAG.png" 
-                    alt="PDVLegal Logo" 
-                    className="w-8 h-8 md:w-12 md:h-12 object-contain animate-bounce-slow"
-                    onError={(e) => {
-                      console.error('Erro ao carregar logo PDVLegal:', e);
-                      // Fallback: mostrar um ícone SVG se a imagem não carregar
-                      e.currentTarget.style.display = 'none';
-                      const fallbackIcon = e.currentTarget.parentElement?.querySelector('.fallback-icon');
-                      if (fallbackIcon) {
-                        (fallbackIcon as HTMLElement).style.display = 'block';
-                      }
-                    }}
-                    onLoad={() => console.log('Logo PDVLegal carregada com sucesso')}
-                  />
-                  {/* Fallback Icon */}
-                  <svg 
-                    className="fallback-icon w-8 h-8 md:w-12 md:h-12 text-blue-200 hidden" 
-                    fill="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <path d="M6 8h12v2H6zm0 4h8v2H6z"/>
-                  </svg>
-                </div>
-                <div className="text-center sm:text-left">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-bold mb-2">
-                    Tutoriais PDVLegal
+        <div className="space-y-8 max-w-7xl mx-auto px-4 py-8">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+                Módulos PDVLegal
+              </span>
                   </h1>
-                  <div className="w-16 h-1 bg-white/50 mx-auto sm:mx-0 rounded-full"></div>
-                </div>
-              </div>
-
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 md:mb-8 text-blue-100 max-w-3xl mx-auto leading-relaxed px-4">
-                Aprenda a usar todas as funcionalidades do sistema PDVLegal
-              </p>
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-2xl mx-auto mb-6 md:mb-8">
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 text-center">
-                  <div className="text-xl md:text-2xl font-bold text-white mb-1">{videos.length}</div>
-                  <div className="text-xs md:text-sm text-blue-100">Tutoriais</div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 text-center">
-                  <div className="text-xl md:text-2xl font-bold text-white mb-1">{categories.length}</div>
-                  <div className="text-xs md:text-sm text-blue-100">Categorias</div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 text-center sm:col-span-2 lg:col-span-1">
-                  <div className="text-xl md:text-2xl font-bold text-white mb-1">
-                    {videos.reduce((acc, video) => acc + (video.visualizacoes || 0), 0)}
-                  </div>
-                  <div className="text-xs md:text-sm text-blue-100">Visualizações</div>
-                </div>
-              </div>
-            </div>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+              Aprenda o sistema PDVLegal de forma organizada através dos nossos módulos especializados
+            </p>
           </div>
-        </section>
 
-        {/* Filters Section */}
-        <section className="py-6 md:py-8 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center">
-              
-              {/* Search Bar */}
-              <div className="w-full md:flex-1">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Buscar tutoriais..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 md:py-3 pl-10 pr-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm md:text-base"
-                  />
-                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Mobile Filter Toggle */}
-              <button
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="md:hidden flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors touch-target"
+          {/* Módulos */}
+          <div className="grid gap-8">
+            {modules.map((module) => (
+              <Card
+                key={module.id}
+                className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 hover:border-blue-500/30 transition-all duration-300"
               >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
-                </svg>
-                Filtros
-              </button>
-
-              {/* Desktop Filters */}
-              <div className="hidden md:flex items-center gap-4">
-                {/* Category Filter */}
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm cursor-pointer touch-target"
+                <CardHeader
+                  className="cursor-pointer"
+                  onClick={() => toggleModule(module.id)}
                 >
-                  {filterCategories.map(category => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Clear Filters */}
-                {(selectedCategory !== 'Todas' || selectedTags.length > 0 || searchTerm) && (
-                  <button
-                    onClick={clearFilters}
-                    className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors touch-target"
-                  >
-                    Limpar
-                  </button>
-                )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className={`bg-gradient-to-r ${module.color} rounded-xl p-3 text-white shadow-lg`}>
+                        {module.icon}
+                      </div>
+                      <div>
+                        <CardTitle className="text-2xl text-gray-900 dark:text-white">{module.name}</CardTitle>
+                        <p className="text-gray-500 dark:text-gray-400">{module.description}</p>
               </div>
             </div>
-
-            {/* Mobile Filters Dropdown */}
-            {isFilterOpen && (
-              <div className="md:hidden mt-4 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg animate-fade-in">
-                <div className="space-y-4">
-                  {/* Category Filter Mobile */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Categoria
-                    </label>
-                    <select
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm"
-                    >
-                      {filterCategories.map(category => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Tags Filter Mobile */}
-                  {tags.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Tags
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {tags.slice(0, 6).map((tag) => (
-                          <label key={tag.id} className="flex items-center space-x-2 cursor-pointer touch-target-sm">
-                            <input
-                              type="checkbox"
-                              checked={selectedTags.includes(tag.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedTags([...selectedTags, tag.id]);
-                                } else {
-                                  setSelectedTags(selectedTags.filter(id => id !== tag.id));
-                                }
-                              }}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                              {tag.nome}
+                    <div className="text-right">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <Badge variant="outline" className="border-blue-400 text-blue-400">
+                          {module.totalProgress.completed}/{module.totalProgress.total} vídeos
+                        </Badge>
+                        <span className="text-blue-400 font-semibold">
+                          {Math.round(module.totalProgress.percentage)}%
                             </span>
-                          </label>
-                        ))}
                       </div>
+                      <Progress
+                        value={module.totalProgress.percentage}
+                        className="w-32 h-2"
+                      />
                     </div>
-                  )}
-
-                  {/* Clear Filters Mobile */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={clearFilters}
-                      className="text-sm text-red-600 hover:text-red-700 transition-colors touch-target"
-                    >
-                      Limpar filtros
-                    </button>
-                    <button
-                      onClick={() => setIsFilterOpen(false)}
-                      className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors touch-target"
-                    >
-                      Aplicar
-                    </button>
                   </div>
+                </CardHeader>
+
+                {expandedModules.has(module.id) && (
+                  <CardContent className="pt-0">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {module.subModules.map((subModule, index) => (
+                        <Card
+                          key={index}
+                          className="bg-slate-100 dark:bg-slate-700/50 border border-slate-600/50 hover:border-blue-500/30 transition-all duration-300"
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3">
+                                <div className="text-blue-400">
+                                  {subModule.icon}
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{subModule.name}</h3>
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">{subModule.progress.total} vídeos</p>
                 </div>
               </div>
-            )}
+                              <div className="text-right">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <CheckCircle className="w-4 h-4 text-green-400" />
+                                  <span className="text-sm text-gray-900 dark:text-white">
+                                    {subModule.progress.completed}/{subModule.progress.total}
+                                  </span>
+                                </div>
+                                <Progress
+                                  value={subModule.progress.percentage}
+                                  className="w-20 h-1"
+                                />
           </div>
-        </section>
+              </div>
+                          </CardHeader>
 
-        {/* Videos Grid */}
-        <section className="py-8 md:py-12 bg-white dark:bg-gray-900">
-          <div className="container mx-auto px-4">
-            {error ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">😞</div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Erro ao carregar tutoriais
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors touch-target"
-                >
-                  Tentar novamente
-                </button>
+                          {subModule.videos.length > 0 && (
+                            <CardContent className="pt-0">
+                              <div className="space-y-3 max-h-96 overflow-y-auto">
+                                {subModule.videos.map((video) => (
+                                  <div
+                                    key={video.id}
+                                    className="bg-slate-200 dark:bg-slate-600/30 rounded-lg p-3 hover:bg-slate-300 dark:hover:bg-slate-600/50 transition-all duration-200 cursor-pointer"
+                                    onClick={() => handleVideoClick(video)}
+                                  >
+                                    <div className="flex items-center space-x-3">
+                                      <div className="flex-shrink-0">
+                                        <img
+                                          src={getThumbnailUrl(video)}
+                                          alt={video.titulo}
+                                          className="w-16 h-10 object-cover rounded"
+                                        />
               </div>
-            ) : filteredVideos.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-4xl md:text-6xl mb-4">🔍</div>
-                <h3 className="text-lg md:text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  Nenhum tutorial encontrado
-                </h3>
-                <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-4">
-                  Tente ajustar seus filtros de busca
-                </p>
-                {(selectedCategory !== 'Todas' || selectedTags.length > 0 || searchTerm) && (
-                  <button
-                    onClick={clearFilters}
-                    className="px-4 md:px-6 py-2 md:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm md:text-base touch-target"
-                  >
-                    Limpar filtros
-                  </button>
-                )}
-              </div>
-            ) : (
-              <>
-                {/* Results Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
-                      Tutoriais PDVLegal
-                    </h2>
-                    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-                      {filteredVideos.length} tutorial{filteredVideos.length !== 1 ? 's' : ''} encontrado{filteredVideos.length !== 1 ? 's' : ''}
-                    </p>
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                          {video.titulo}
+                                        </h4>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                          {video.duracao} • {video.visualizacoes} visualizações
+                                        </p>
+                                      </div>
+                                      <div className="flex-shrink-0">
+                                        <PlayCircle className="w-5 h-5 text-blue-400" />
+                                      </div>
                   </div>
                 </div>
-
-                {/* Videos Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
-                  {paginatedVideos.map((video) => (
-                    <VideoCard
-                      key={video.id}
-                      video={video}
-                      onVideoClick={handleVideoClick}
-                    />
                   ))}
                 </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-8 md:mt-12 flex justify-center">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            href="#" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (currentPage > 1) setCurrentPage(currentPage - 1);
-                            }}
-                            className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'touch-target'}
-                          />
-                        </PaginationItem>
-                        
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          const pageNumber = i + 1;
-                          return (
-                            <PaginationItem key={pageNumber}>
-                              <PaginationLink
-                                href="#"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setCurrentPage(pageNumber);
-                                }}
-                                isActive={currentPage === pageNumber}
-                                className="touch-target"
-                              >
-                                {pageNumber}
-                              </PaginationLink>
-                            </PaginationItem>
-                          );
-                        })}
-                        
-                        {totalPages > 5 && (
-                          <PaginationItem>
-                            <PaginationEllipsis />
-                          </PaginationItem>
-                        )}
-                        
-                        <PaginationItem>
-                          <PaginationNext 
-                            href="#" 
-                            onClick={(e) => {
-                              e.preventDefault();
-                              if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-                            }}
-                            className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'touch-target'}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
+                            </CardContent>
+                          )}
+                        </Card>
+                      ))}
                   </div>
+                  </CardContent>
                 )}
-              </>
-            )}
+              </Card>
+            ))}
           </div>
-        </section>
+        </div>
       </main>
-      
       <Footer />
-      
+      {/* Modal de vídeo */}
+      {selectedVideo && (
       <VideoModal
         video={selectedVideo}
         isOpen={isModalOpen}
         onClose={handleCloseModal}
       />
+      )}
     </div>
   );
 };
 
-export default PDVLegal;
+export default PDVLegalModules;

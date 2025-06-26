@@ -86,8 +86,8 @@ const HiperModules: React.FC = () => {
       { name: 'Etiquetas', icon: <BookOpen className="w-5 h-5" />, categoryName: 'Relatórios' }
     ],
     caixa: [
-      { name: 'Faturamento', icon: <FileText className="w-5 h-5" />, categoryName: 'Vendas' },
-      { name: 'Operações', icon: <PlayCircle className="w-5 h-5" />, categoryName: 'Vendas' }
+      { name: 'Faturamento', icon: <FileText className="w-5 h-5" />, categoryName: 'Faturamento' },
+      { name: 'Operações', icon: <PlayCircle className="w-5 h-5" />, categoryName: 'Operações' }
     ]
   };
 
@@ -129,13 +129,31 @@ const HiperModules: React.FC = () => {
 
       // Organizar vídeos por módulos e submódulos
       const processedModules = moduleStructure.map(module => {
-        const moduleVideos = videosData?.filter(video => 
-          video.video_tags.some((vt: any) => vt.tag.nome === module.tagName)
-        ) || [];
+        const moduleVideos = (videosData?.filter(video => 
+          video.video_tags.some((vt: { tag: { nome: string } }) => vt.tag.nome === module.tagName)
+        ) || []).map(video => ({
+          ...video,
+          sistema: (video.sistema === 'hiper' || video.sistema === 'pdvlegal') ? video.sistema as 'hiper' | 'pdvlegal' : 'hiper',
+          status: (video.status === 'ativo' || video.status === 'inativo' || video.status === 'rascunho') ? video.status as 'ativo' | 'inativo' | 'rascunho' : 'ativo',
+          // Corrigir categoria para garantir que tenha id, nome e cor
+          categoria: (() => {
+            if (video.categoria && typeof video.categoria === 'object') {
+              return {
+                id: 'id' in video.categoria ? String(video.categoria.id ?? '') : '',
+                nome: 'nome' in video.categoria ? video.categoria.nome ?? '' : '',
+                cor: 'cor' in video.categoria ? video.categoria.cor ?? '' : ''
+              };
+            }
+            if (typeof video.categoria === 'string') {
+              return video.categoria;
+            }
+            return { id: '', nome: '', cor: '' };
+          })(),
+        }));
 
         const subModules = subModuleStructure[module.id].map(subModule => {
           const subModuleVideos = moduleVideos.filter(video => 
-            video.categoria?.nome === subModule.categoryName
+            video.categoria && typeof video.categoria === 'object' && video.categoria.nome === subModule.categoryName
           );
 
           const completedCount = subModuleVideos.filter(video => 
@@ -212,6 +230,18 @@ const HiperModules: React.FC = () => {
       newExpanded.add(moduleId);
     }
     setExpandedModules(newExpanded);
+  };
+
+  // Função utilitária para obter a URL da miniatura (igual ao VideoCard)
+  const getThumbnailUrl = (video: Video): string => {
+    if (video.thumbnail_path) {
+      const { data } = supabase.storage.from('thumbnails').getPublicUrl(video.thumbnail_path);
+      return data?.publicUrl || '/placeholder.svg';
+    }
+    if (video.miniatura) {
+      return video.miniatura;
+    }
+    return '/placeholder.svg';
   };
 
   if (loading) {
@@ -320,7 +350,7 @@ const HiperModules: React.FC = () => {
                                 <div className="flex items-center space-x-3">
                                   <div className="flex-shrink-0">
                                     <img
-                                      src={video.miniatura || '/placeholder.svg'}
+                                      src={getThumbnailUrl(video)}
                                       alt={video.titulo}
                                       className="w-16 h-10 object-cover rounded"
                                     />
