@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -41,6 +41,7 @@ const HiperModules: React.FC = () => {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [watchedVideos, setWatchedVideos] = useState<string[]>([]);
 
   // Definição da estrutura dos módulos
   const moduleStructure: Omit<Module, 'subModules' | 'totalProgress'>[] = [
@@ -91,11 +92,7 @@ const HiperModules: React.FC = () => {
     ]
   };
 
-  useEffect(() => {
-    fetchModulesData();
-  }, [user]);
-
-  const fetchModulesData = async () => {
+  const fetchModulesData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -115,7 +112,7 @@ const HiperModules: React.FC = () => {
       if (videosError) throw videosError;
 
       // Buscar progresso dos vídeos assistidos pelo usuário
-      let watchedVideos: string[] = [];
+      let watched: string[] = [];
       if (user) {
         const { data: historyData, error: historyError } = await supabase
           .from('video_history')
@@ -124,8 +121,9 @@ const HiperModules: React.FC = () => {
           .eq('completed', true);
 
         if (historyError) throw historyError;
-        watchedVideos = historyData?.map(h => h.video_id) || [];
+        watched = historyData?.map(h => h.video_id) || [];
       }
+      setWatchedVideos(watched);
 
       // Organizar vídeos por módulos e submódulos
       const processedModules = moduleStructure.map(module => {
@@ -157,7 +155,7 @@ const HiperModules: React.FC = () => {
           );
 
           const completedCount = subModuleVideos.filter(video => 
-            watchedVideos.includes(video.id)
+            watched.includes(video.id)
           ).length;
 
           return {
@@ -192,7 +190,11 @@ const HiperModules: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchModulesData();
+  }, [fetchModulesData]);
 
   const handleVideoClick = (video: Video) => {
     setSelectedVideo(video);
@@ -202,15 +204,16 @@ const HiperModules: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedVideo(null);
-    // Recarregar dados para atualizar progresso
-    fetchModulesData();
+    // Não recarregar aqui - o evento videoWatched já cuida disso
   };
 
   // Escutar quando vídeos são marcados como assistidos para atualizar módulos
   useEffect(() => {
-    const handleVideoWatched = () => {
+    const handleVideoWatched = (event: CustomEvent) => {
+      console.log('🎥 [HiperModules] Evento videoWatched recebido:', event.detail);
       // Aguardar um pouco para o banco ser atualizado, então recarregar dados
       setTimeout(() => {
+        console.log('🔄 [HiperModules] Recarregando dados dos módulos...');
         fetchModulesData();
       }, 1000);
     };
@@ -220,7 +223,7 @@ const HiperModules: React.FC = () => {
     return () => {
       window.removeEventListener('videoWatched', handleVideoWatched);
     };
-  }, []);
+  }, [fetchModulesData]);
 
   const toggleModule = (moduleId: string) => {
     const newExpanded = new Set(expandedModules);
@@ -341,16 +344,24 @@ const HiperModules: React.FC = () => {
                       {subModule.videos.length > 0 && (
                         <CardContent className="pt-0">
                           <div className="space-y-3 max-h-96 overflow-y-auto">
-                            {subModule.videos.map((video) => (
+                            {subModule.videos.map((video) => {
+                              const assistido = watchedVideos.includes(video.id);
+                              return (
                               <div 
                                 key={video.id}
-                                className="bg-slate-600/30 rounded-lg p-3 hover:bg-slate-600/50 transition-all duration-200 cursor-pointer"
+                                  className={`bg-slate-600/30 rounded-lg p-3 hover:bg-slate-600/50 transition-all duration-200 cursor-pointer relative ${assistido ? 'border-2 border-green-400 bg-green-900/20' : ''}`}
                                 onClick={() => handleVideoClick(video)}
                               >
                                 <div className="flex items-center space-x-3">
+                                    {/* Ícone de assistido à esquerda */}
+                                    {assistido && (
+                                      <div className="flex-shrink-0 mr-1">
+                                        <CheckCircle className="w-5 h-5 text-green-400" />
+                                      </div>
+                                    )}
                                   <div className="flex-shrink-0">
                                     <img
-                                      src={getThumbnailUrl(video)}
+                                        src={getThumbnailUrl(video)}
                                       alt={video.titulo}
                                       className="w-16 h-10 object-cover rounded"
                                     />
@@ -368,7 +379,8 @@ const HiperModules: React.FC = () => {
                                   </div>
                                 </div>
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </CardContent>
                       )}

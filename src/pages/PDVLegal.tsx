@@ -43,6 +43,7 @@ const PDVLegalModules: React.FC = () => {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [watchedVideos, setWatchedVideos] = useState<string[]>([]);
 
   // Definição da estrutura dos módulos
   const moduleStructure: Omit<Module, 'subModules' | 'totalProgress'>[] = [
@@ -128,7 +129,7 @@ const PDVLegalModules: React.FC = () => {
       if (videosError) throw videosError;
 
       // Buscar progresso dos vídeos assistidos pelo usuário
-      let watchedVideos: string[] = [];
+      let watched: string[] = [];
       if (user) {
         const { data: historyData, error: historyError } = await supabase
           .from('video_history')
@@ -137,13 +138,14 @@ const PDVLegalModules: React.FC = () => {
           .eq('completed', true);
 
         if (historyError) throw historyError;
-        watchedVideos = historyData?.map(h => h.video_id) || [];
+        watched = historyData?.map(h => h.video_id) || [];
       }
+      setWatchedVideos(watched);
 
       // Organizar vídeos por módulos e submódulos
       const processedModules = moduleStructure.map(module => {
         const moduleVideos = (videosData?.filter(video =>
-          video.video_tags.some((vt: any) => vt.tag.nome === module.tagName)
+          video.video_tags.some((vt: { tag: { nome: string } }) => vt.tag.nome === module.tagName)
         ) || []).map(video => ({
           ...video,
           sistema: (video.sistema === 'hiper' || video.sistema === 'pdvlegal') ? video.sistema as 'hiper' | 'pdvlegal' : 'pdvlegal',
@@ -169,7 +171,7 @@ const PDVLegalModules: React.FC = () => {
           );
 
           const completedCount = subModuleVideos.filter(video =>
-            watchedVideos.includes(video.id)
+            watched.includes(video.id)
           ).length;
 
           return {
@@ -220,8 +222,10 @@ const PDVLegalModules: React.FC = () => {
 
   // Escutar quando vídeos são marcados como assistidos para atualizar módulos
   useEffect(() => {
-    const handleVideoWatched = () => {
+    const handleVideoWatched = (event: CustomEvent) => {
+      console.log('🎥 [PDVLegal] Evento videoWatched recebido:', event.detail);
       setTimeout(() => {
+        console.log('🔄 [PDVLegal] Recarregando dados dos módulos...');
         fetchModulesData();
       }, 1000);
     };
@@ -229,8 +233,7 @@ const PDVLegalModules: React.FC = () => {
     return () => {
       window.removeEventListener('videoWatched', handleVideoWatched);
     };
-    // eslint-disable-next-line
-  }, []);
+  }, [fetchModulesData]);
 
   const toggleModule = (moduleId: string) => {
     const newExpanded = new Set(expandedModules);
@@ -353,35 +356,44 @@ const PDVLegalModules: React.FC = () => {
                           {subModule.videos.length > 0 && (
                             <CardContent className="pt-0">
                               <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {subModule.videos.map((video) => (
-                                  <div
-                                    key={video.id}
-                                    className="bg-slate-200 dark:bg-slate-600/30 rounded-lg p-3 hover:bg-slate-300 dark:hover:bg-slate-600/50 transition-all duration-200 cursor-pointer"
-                                    onClick={() => handleVideoClick(video)}
-                                  >
-                                    <div className="flex items-center space-x-3">
-                                      <div className="flex-shrink-0">
-                                        <img
-                                          src={getThumbnailUrl(video)}
-                                          alt={video.titulo}
-                                          className="w-16 h-10 object-cover rounded"
-                                        />
+                                {subModule.videos.map((video) => {
+                                  const assistido = watchedVideos.includes(video.id);
+                                  return (
+                                    <div
+                                      key={video.id}
+                                      className={`bg-slate-200 dark:bg-slate-600/30 rounded-lg p-3 hover:bg-slate-300 dark:hover:bg-slate-600/50 transition-all duration-200 cursor-pointer relative ${assistido ? 'border-2 border-green-400 bg-green-900/20 dark:bg-green-900/20' : ''}`}
+                                      onClick={() => handleVideoClick(video)}
+                                    >
+                                      <div className="flex items-center space-x-3">
+                                        {/* Ícone de assistido à esquerda */}
+                                        {assistido && (
+                                          <div className="flex-shrink-0 mr-1">
+                                            <CheckCircle className="w-5 h-5 text-green-400" />
+                                          </div>
+                                        )}
+                                        <div className="flex-shrink-0">
+                                          <img
+                                            src={getThumbnailUrl(video)}
+                                            alt={video.titulo}
+                                            className="w-16 h-10 object-cover rounded"
+                                          />
               </div>
-                                      <div className="flex-1 min-w-0">
-                                        <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                          {video.titulo}
-                                        </h4>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                          {video.duracao} • {video.visualizacoes} visualizações
-                                        </p>
-                                      </div>
-                                      <div className="flex-shrink-0">
-                                        <PlayCircle className="w-5 h-5 text-blue-400" />
-                                      </div>
+                                        <div className="flex-1 min-w-0">
+                                          <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                            {video.titulo}
+                                          </h4>
+                                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            {video.duracao} • {video.visualizacoes} visualizações
+                    </p>
                   </div>
+                                        <div className="flex-shrink-0">
+                                          <PlayCircle className="w-5 h-5 text-blue-400" />
+                                        </div>
                 </div>
-                  ))}
                 </div>
+                          );
+                        })}
+                              </div>
                             </CardContent>
                           )}
                         </Card>

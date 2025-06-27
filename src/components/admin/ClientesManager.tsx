@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlusIcon, SearchIcon } from 'lucide-react';
+import { UserPlusIcon, SearchIcon, Trash2Icon } from 'lucide-react';
 
 interface Cliente {
   id: string;
@@ -38,6 +38,9 @@ const ClientesManager = () => {
     cidade: '',
     estado: '',
   });
+
+  const [clienteParaExcluir, setClienteParaExcluir] = useState<Cliente | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
 
   useEffect(() => {
     fetchClientes();
@@ -138,6 +141,45 @@ const ClientesManager = () => {
       });
     } finally {
       setCadastroLoading(false);
+    }
+  };
+
+  // Função para exclusão em cascata
+  const handleExcluirCliente = async () => {
+    if (!clienteParaExcluir) return;
+    setExcluindo(true);
+    try {
+      // 1. Excluir histórico de vídeos
+      const { error: histError } = await supabase
+        .from('video_history')
+        .delete()
+        .eq('user_id', clienteParaExcluir.id);
+      if (histError) throw histError;
+
+      // 2. Excluir cadastro_empresa
+      const { error: cadError } = await supabase
+        .from('cadastro_empresa')
+        .delete()
+        .eq('id', clienteParaExcluir.id);
+      if (cadError) throw cadError;
+
+      // 3. (Opcional) Excluir do Auth (se desejar)
+      await supabase.auth.admin.deleteUser(clienteParaExcluir.id);
+
+      toast({
+        title: 'Cliente excluído',
+        description: 'Todos os dados e histórico foram removidos.',
+      });
+      setClienteParaExcluir(null);
+      fetchClientes();
+    } catch (err: any) {
+      toast({
+        title: 'Erro ao excluir',
+        description: err.message || 'Erro ao excluir cliente.',
+        variant: 'destructive',
+      });
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -350,6 +392,7 @@ const ClientesManager = () => {
                     <th className="p-2 text-left text-white font-semibold">Cidade</th>
                     <th className="p-2 text-left text-white font-semibold">Estado</th>
                     <th className="p-2 text-left text-white font-semibold">Data Cadastro</th>
+                    <th className="p-2 text-left text-white font-semibold">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -377,6 +420,17 @@ const ClientesManager = () => {
                           '—'
                         }
                       </td>
+                      <td className="p-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:bg-red-500/10"
+                          title="Excluir cliente"
+                          onClick={() => setClienteParaExcluir(cliente)}
+                        >
+                          <Trash2Icon className="w-5 h-5" />
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -385,6 +439,39 @@ const ClientesManager = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de confirmação de exclusão */}
+      {clienteParaExcluir && (
+        <Dialog open={!!clienteParaExcluir} onOpenChange={open => !open && setClienteParaExcluir(null)}>
+          <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-md border border-white/20">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">
+                Excluir Cliente
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4 text-gray-800">
+              Tem certeza que deseja excluir <b>{clienteParaExcluir.nome_fantasia}</b>?<br />
+              <span className="text-red-600 font-semibold">Esta ação é irreversível e todos os dados e histórico serão apagados.</span>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setClienteParaExcluir(null)}
+                disabled={excluindo}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleExcluirCliente}
+                disabled={excluindo}
+              >
+                {excluindo ? 'Excluindo...' : 'Excluir'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

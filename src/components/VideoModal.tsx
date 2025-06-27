@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactPlayer from 'react-player';
 import VideoComments from './VideoComments';
-import { X, Clock, Eye, Tag, Calendar, User, Share2, Bookmark, ThumbsUp, Maximize, Minimize, Play, Pause, Volume2, VolumeX, Settings, MoreVertical } from 'lucide-react';
+import { X, Clock, Eye, Tag, Calendar, User, Share2, Bookmark, ThumbsUp, Maximize, Minimize, Play, Pause, Volume2, VolumeX, Settings, MoreVertical, CheckCircle, Circle } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Separator } from './ui/separator';
@@ -12,6 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVideoProgress } from '@/hooks/useVideoProgress';
 import { useProgressStats } from '@/hooks/useProgressStats';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Video {
   id: string;
@@ -55,6 +56,8 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   const [jaMarcado, setJaMarcado] = useState(false);
   const [toastShown, setToastShown] = useState(false);
   const { refetch: refetchProgress } = useProgressStats();
+  const [assistidoManual, setAssistidoManual] = useState<boolean>(false);
+  const [isToggling, setIsToggling] = useState<boolean>(false);
 
   const playerRef = useRef<ReactPlayer>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
@@ -100,11 +103,41 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
 
   useEffect(() => {
     setJaMarcado(false); // Reset ao abrir novo vídeo
+    setIsToggling(false); // Reset estado de loading
   }, [video?.id, user?.id]);
 
   useEffect(() => {
     setToastShown(false); // Reset ao trocar de vídeo
   }, [video?.id]);
+
+  useEffect(() => {
+    async function fetchWatched() {
+      if (user && video) {
+        try {
+          const { data, error } = await supabase
+            .from('video_history')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('video_id', video.id)
+            .eq('completed', true)
+            .maybeSingle(); // Usa maybeSingle() para evitar erro quando não encontra
+          
+          if (error) {
+            console.error('Erro ao verificar vídeo assistido:', error);
+            setAssistidoManual(false);
+          } else {
+            setAssistidoManual(!!data);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar status do vídeo:', error);
+          setAssistidoManual(false);
+        }
+      } else {
+        setAssistidoManual(false);
+      }
+    }
+    fetchWatched();
+  }, [user, video]);
 
   if (!isOpen || !video) return null;
 
@@ -189,29 +222,8 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
         updateWatchDuration?.(video.id, Math.floor(state.playedSeconds), video.titulo);
       }
       
-      // Marcar como assistido ao atingir 85% do vídeo, apenas uma vez
-      if (video && user && !jaMarcado && state.played >= 0.85) {
-        const categoria = typeof video.categoria === 'object' ? video.categoria.nome : video.categoria;
-        markAsWatched(video.id, video.titulo, categoria, Math.floor(state.playedSeconds))
-          .then(() => {
-            console.log('Vídeo marcado como assistido com sucesso');
-        setJaMarcado(true);
-        refetchProgress(); // Atualiza dashboard
-            
-            toast({
-              title: "Vídeo quase finalizado! 🎉",
-              description: "Você já assistiu 85% do vídeo. Progresso salvo!",
-            });
-          })
-          .catch((error) => {
-            console.error('Erro ao marcar vídeo como assistido:', error);
-            toast({
-              title: "Erro ao salvar progresso",
-              description: "Não foi possível salvar seu progresso. Tente novamente.",
-              variant: "destructive"
-            });
-          });
-      }
+      // Comentado: Marcação automática removida - agora é manual via botão
+      // if (video && user && !jaMarcado && state.played >= 0.85) { ... }
     }
   };
 
@@ -222,33 +234,11 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
   const handleEnded = () => {
     setPlaying(false);
     
-    // Marcar como assistido quando o vídeo terminar (caso não tenha sido marcado antes)
-    if (video && user) {
-      const categoria = typeof video.categoria === 'object' ? video.categoria.nome : video.categoria;
-      markAsWatched(video.id, video.titulo, categoria, Math.floor(duration))
-        .then(() => {
-          console.log('Vídeo marcado como completo no final');
-          setJaMarcado(true);
-          refetchProgress(); // Atualiza dashboard
-          
-          toast({
-            title: "Vídeo finalizado! 🎉",
-            description: "Parabéns! Você concluiu este tutorial. Seu progresso foi salvo.",
-          });
-        })
-        .catch((error) => {
-          console.error('Erro ao marcar vídeo como completo:', error);
-          toast({
-            title: "Vídeo finalizado!",
-            description: "Parabéns! Você concluiu este tutorial.",
-          });
-        });
-    } else {
+    // Apenas toast de finalização - marcação como assistido agora é manual
     toast({
-      title: "Vídeo finalizado!",
-        description: "Parabéns! Você concluiu este tutorial.",
+      title: "Vídeo finalizado! 🎉",
+      description: "Parabéns! Você concluiu este tutorial.",
     });
-    }
   };
 
   const handleError = (error: string | MediaError) => {
@@ -308,17 +298,136 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
     });
   };
 
+  const handleToggleAssistido = async () => {
+    if (!user || !video || isToggling) return;
+    
+    setIsToggling(true);
+    
+    try {
+      if (assistidoManual) {
+        // Desmarcar: remover do histórico
+        const { error: deleteError } = await supabase
+          .from('video_history')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('video_id', video.id);
+          
+        if (deleteError) {
+          throw deleteError;
+        }
+        
+        setAssistidoManual(false);
+        setJaMarcado(false);
+        
+        // Disparar evento customizado para notificar outros componentes
+        window.dispatchEvent(new CustomEvent('videoWatched', { 
+          detail: { 
+            videoId: video.id, 
+            videoTitle: video.titulo, 
+            videoCategoria: typeof video.categoria === 'object' ? video.categoria.nome : video.categoria,
+            userId: user.id,
+            action: 'unmarked'
+          } 
+        }));
+        
+        refetchProgress();
+        toast({ title: 'Vídeo desmarcado', description: 'O vídeo foi removido dos assistidos.' });
+      } else {
+        // Marcar: primeiro verificar se já existe, depois inserir/atualizar
+        const categoriaNome = typeof video.categoria === 'object' ? video.categoria.nome : video.categoria;
+        
+        // Verificar se já existe um registro
+        const { data: existingRecord } = await supabase
+          .from('video_history')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('video_id', video.id)
+          .maybeSingle();
+        
+        let result;
+        if (existingRecord) {
+          // Atualizar registro existente
+          result = await supabase
+            .from('video_history')
+            .update({
+              video_titulo: video.titulo,
+              video_categoria: categoriaNome,
+              completed: true,
+              watched_at: new Date().toISOString(),
+            })
+            .eq('user_id', user.id)
+            .eq('video_id', video.id);
+        } else {
+          // Inserir novo registro
+          result = await supabase
+            .from('video_history')
+            .insert({
+              user_id: user.id,
+              video_id: video.id,
+              video_titulo: video.titulo,
+              video_categoria: categoriaNome,
+              completed: true,
+              watched_at: new Date().toISOString(),
+            });
+        }
+        
+        if (result.error) {
+          throw result.error;
+        }
+        
+        setAssistidoManual(true);
+        setJaMarcado(true);
+        
+        // Disparar evento customizado para notificar outros componentes
+        window.dispatchEvent(new CustomEvent('videoWatched', { 
+          detail: { 
+            videoId: video.id, 
+            videoTitle: video.titulo, 
+            videoCategoria: categoriaNome,
+            userId: user.id,
+            action: 'marked'
+          } 
+        }));
+        
+        refetchProgress();
+        toast({ title: 'Vídeo marcado como assistido', description: 'Seu progresso foi salvo.' });
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status do vídeo:', error);
+      
+      // Reverter estado em caso de erro
+      const { data: currentState } = await supabase
+        .from('video_history')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('video_id', video.id)
+        .eq('completed', true)
+        .maybeSingle();
+      
+      setAssistidoManual(!!currentState);
+      setJaMarcado(!!currentState);
+      
+              toast({ 
+          title: 'Erro', 
+          description: 'Não foi possível alterar o status do vídeo. Tente novamente.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsToggling(false);
+      }
+    };
+
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in mobile-padding">
-      <div className={`bg-white dark:bg-gray-900 w-full transition-all duration-300 overflow-hidden ${
-        isPlayerFullscreen 
-          ? 'fixed inset-0 bg-black z-50 rounded-none mobile-full-height' 
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-black/90 via-slate-900/90 to-black/95 animate-fade-in p-2 md:p-4 overflow-y-auto">
+      <div className={`bg-white dark:bg-gray-900 w-full transition-all duration-300 my-auto
+        ${isPlayerFullscreen 
+          ? 'fixed inset-0 bg-black z-50 rounded-none h-full overflow-hidden' 
           : isMobile
-            ? 'max-w-[98vw] max-h-[95vh] rounded-xl'
+            ? 'max-w-[98vw] max-h-[96vh] rounded-xl overflow-y-auto'
             : isFullscreen 
-              ? 'max-w-[95vw] max-h-[95vh] rounded-2xl' 
-              : 'max-w-7xl max-h-[90vh] rounded-2xl'
-      }`}>
+              ? 'max-w-[95vw] max-h-[94vh] rounded-2xl overflow-y-auto' 
+              : 'max-w-7xl max-h-[90vh] rounded-2xl overflow-y-auto'
+        }`}>
         {/* Header */}
         {!isPlayerFullscreen && (
           <div className="flex justify-between items-center p-3 md:p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900">
@@ -346,17 +455,11 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
           </div>
         )}
         
-        <div className={`flex ${isPlayerFullscreen ? 'flex-col' : isMobile ? 'flex-col' : isFullscreen ? 'flex-col' : 'flex-col lg:flex-row'} ${isPlayerFullscreen ? 'h-screen' : 'max-h-[calc(95vh-60px)]'}`}>
+        <div className={`flex flex-col lg:flex-row gap-4 md:gap-8 py-4 md:py-8 items-center justify-center ${isPlayerFullscreen ? 'h-screen' : ''}`}>
           {/* Video Player Section */}
-          <div className={`${isPlayerFullscreen ? 'w-full h-full' : isMobile ? 'w-full' : isFullscreen ? 'w-full' : 'lg:w-2/3'} relative`}>
+          <div className={`${isPlayerFullscreen ? 'w-full h-full' : isMobile ? 'w-full' : isFullscreen ? 'w-full' : 'lg:w-2/3'} flex justify-center items-center`}>
             <div 
-              className={`relative bg-black overflow-hidden group ${
-                isPlayerFullscreen 
-                  ? 'w-full h-full rounded-none' 
-                  : isMobile
-                    ? 'w-full aspect-video rounded-t-lg'
-                    : 'rounded-lg aspect-video'
-              }`}
+              className={`relative bg-black overflow-hidden group shadow-2xl border border-gray-800 dark:border-gray-700 rounded-2xl w-full max-w-3xl aspect-video mx-auto`}
               onMouseMove={handleMouseMove}
               onMouseLeave={() => !isMobile && playing && setShowControls(false)}
               onTouchStart={handleTouchStart}
@@ -547,7 +650,7 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
 
           {/* Video Info and Comments Section */}
           {!isPlayerFullscreen && (
-            <div className={`${isMobile ? 'w-full' : 'lg:w-1/3'} border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex flex-col`}>
+            <div className={`${isMobile ? 'w-full' : 'lg:w-1/3'} ${isMobile ? '' : 'border-l'} border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex flex-col max-h-[70vh]`}>
               <div className="p-3 md:p-6 flex-1 overflow-y-auto">
                 {/* Video Info */}
                 <div className="mb-4 md:mb-6">
@@ -594,6 +697,25 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+                      {user && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleToggleAssistido}
+                          disabled={isToggling}
+                          className={`touch-target-sm ${assistidoManual ? 'text-green-500' : 'text-gray-600 dark:text-gray-400'} ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          title={isToggling ? 'Processando...' : assistidoManual ? 'Marcar como não assistido' : 'Marcar como assistido'}
+                        >
+                          {isToggling ? (
+                            <div className="w-4 h-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : assistidoManual ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : (
+                            <Circle className="w-4 h-4" />
+                          )}
+                        </Button>
+                      )}
+                      
                       <Button
                         variant="ghost"
                         size="sm"

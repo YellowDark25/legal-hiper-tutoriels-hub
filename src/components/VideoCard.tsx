@@ -62,9 +62,12 @@ const VideoCard: React.FC<VideoCardProps> = ({ video, onVideoClick }) => {
   useEffect(() => {
     const handleStorageChange = () => {
       if (user) {
-        getWatchedVideos().then(watchedIds => {
-          setAssistido(watchedIds.includes(video.id));
-        });
+        // Usar setTimeout para evitar atualizações muito frequentes durante reprodução
+        setTimeout(() => {
+          getWatchedVideos().then(watchedIds => {
+            setAssistido(watchedIds.includes(video.id));
+          });
+        }, 500);
       }
     };
 

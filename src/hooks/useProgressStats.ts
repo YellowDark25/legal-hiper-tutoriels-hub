@@ -57,7 +57,7 @@ export function useProgressStats(targetUserId?: string) {
     const userId = targetUserId || user?.id;
     
     if (!userId) {
-      console.warn('Nenhum usuário identificado para carregar estatísticas');
+      console.warn('🚫 [useProgressStats] Nenhum usuário identificado para carregar estatísticas');
       setStats(null);
       setLoading(false);
       return;
@@ -65,7 +65,7 @@ export function useProgressStats(targetUserId?: string) {
 
     // Se não é admin e está tentando ver stats de outro usuário, bloquear
     if (!isAdmin && targetUserId && targetUserId !== user?.id) {
-      console.warn('Usuário não autorizado para ver stats de outros usuários');
+      console.warn('🚫 [useProgressStats] Usuário não autorizado para ver stats de outros usuários');
       setError('Não autorizado');
       setLoading(false);
       return;
@@ -83,7 +83,12 @@ export function useProgressStats(targetUserId?: string) {
       setLoading(true);
       setError(null);
 
-      console.log('Carregando estatísticas para usuário:', userId);
+      console.log('🔍 [useProgressStats] Iniciando carregamento de estatísticas...');
+      console.log('🔍 [useProgressStats] - userId:', userId);
+      console.log('🔍 [useProgressStats] - targetUserId:', targetUserId);
+      console.log('🔍 [useProgressStats] - user?.id:', user?.id);
+      console.log('🔍 [useProgressStats] - isAdmin:', isAdmin);
+      console.log('🔍 [useProgressStats] - userSystem:', userSystem);
 
       // Buscar sistema do usuário se estamos filtrando por outro usuário
       let sistema = userSystem;
@@ -92,17 +97,18 @@ export function useProgressStats(targetUserId?: string) {
       if (isAdmin && !targetUserId) {
         sistema = null; // Permitir todos os sistemas
       } else if (targetUserId && targetUserId !== user?.id) {
-        // Se o targetUserId é um email, buscar o sistema na tabela cadastro_empresa
-        if (targetUserId.includes('@')) {
-          const { data: empresaData, error: empresaError } = await supabase
-            .from('cadastro_empresa')
-            .select('sistema')
-            .eq('email', targetUserId)
-            .single();
-            
-          if (!empresaError && empresaData) {
-            sistema = empresaData.sistema;
-          }
+        // Se o targetUserId é um UUID, buscar o sistema na tabela cadastro_empresa
+        const { data: empresaData, error: empresaError } = await supabase
+          .from('cadastro_empresa')
+          .select('sistema')
+          .eq('id', targetUserId)
+          .single();
+          
+        if (!empresaError && empresaData) {
+          sistema = empresaData.sistema;
+          console.log('🔍 [useProgressStats] Sistema encontrado para cliente:', sistema);
+        } else {
+          console.log('❌ [useProgressStats] Erro ao buscar empresa ou empresa não encontrada:', empresaError?.message);
         }
       }
 
@@ -131,42 +137,11 @@ export function useProgressStats(targetUserId?: string) {
       }
 
       // 2. Buscar vídeos assistidos pelo usuário
-      // Se o userId é um email, buscar por email na tabela de história
-      let historyQuery = supabase
+      const historyQuery = supabase
         .from('video_history')
         .select('video_id, video_titulo, watched_at, completed')
-        .eq('completed', true);
-
-      if (targetUserId && targetUserId.includes('@')) {
-        // Para filtro por email, buscar primeiro o user_id real
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', targetUserId) // Usar email como fallback
-          .single();
-          
-        if (profileData) {
-          historyQuery = historyQuery.eq('user_id', profileData.id);
-        } else {
-          // Se não encontrar profile, não há dados
-          setStats({
-            geral: {
-              totalVideos: 0,
-              videosAssistidos: 0,
-              videosRestantes: 0,
-              percentualCompleto: 0
-            },
-            categorias: [],
-            modulos: [],
-            atividadeRecente: 0,
-            ultimosAssistidos: []
-          });
-          setLoading(false);
-          return;
-        }
-      } else {
-        historyQuery = historyQuery.eq('user_id', userId);
-      }
+        .eq('completed', true)
+        .eq('user_id', userId);
 
       const { data: historyData, error: historyError } = await historyQuery;
 
@@ -174,11 +149,26 @@ export function useProgressStats(targetUserId?: string) {
         throw new Error(`Erro ao buscar histórico: ${historyError.message}`);
       }
 
-      // Filtrar vídeos que possuem pelo menos uma tag de módulo válida
-      const moduloTags = ['Hiper Caixa', 'Hiper Loja', 'Hiper Gestão'];
-      const videosFiltrados = (videosData || []).filter(video =>
-        Array.isArray(video.video_tags) && video.video_tags.some((vt: { tag: { nome: string } }) => moduloTags.includes(vt.tag.nome))
-      );
+      // Definir tags de módulo baseado no sistema
+      let moduloTags: string[] = [];
+      if (sistema === 'hiper') {
+        moduloTags = ['Hiper Caixa', 'Hiper Loja', 'Hiper Gestão'];
+      } else if (sistema === 'pdvlegal') {
+        moduloTags = ['PDV', 'Retaguarda', 'Totem', 'Invoicy'];
+      } else {
+        // Se não há sistema específico ou é admin vendo todos
+        moduloTags = ['Hiper Caixa', 'Hiper Loja', 'Hiper Gestão', 'PDV', 'Retaguarda', 'Totem', 'Invoicy'];
+      }
+
+      // Usar todos os vídeos se não há tags de módulo ou se queremos incluir vídeos sem tags específicas
+      const videosFiltrados = (videosData || []).filter(video => {
+        // Se há tags de vídeo, verificar se pelo menos uma é de módulo válido
+        if (Array.isArray(video.video_tags) && video.video_tags.length > 0) {
+          return video.video_tags.some((vt: { tag: { nome: string } }) => moduloTags.includes(vt.tag.nome));
+        }
+        // Se não há tags, incluir todos os vídeos (para compatibilidade)
+        return true;
+      });
 
       // Novo: Agrupar por módulo/tag (agora historyData já está inicializado)
       const modulos = moduloTags.map((moduloTag) => {
@@ -195,7 +185,7 @@ export function useProgressStats(targetUserId?: string) {
           const categoria = video.categorias?.nome || 'Geral';
           if (!categoriaStatsModulo.has(categoria)) {
             categoriaStatsModulo.set(categoria, { total: 0, assistidos: 0 });
-          }
+        }
           categoriaStatsModulo.get(categoria)!.total++;
         });
         historyData?.forEach(history => {
@@ -204,7 +194,7 @@ export function useProgressStats(targetUserId?: string) {
             const categoria = video.categorias?.nome || 'Geral';
             if (categoriaStatsModulo.has(categoria)) {
               categoriaStatsModulo.get(categoria)!.assistidos++;
-            }
+        }
           }
         });
         const categorias = Array.from(categoriaStatsModulo.entries()).map(([nome, stats]) => ({
@@ -228,6 +218,15 @@ export function useProgressStats(targetUserId?: string) {
       const videosRestantes = Math.max(0, totalVideos - videosAssistidos);
       const percentualCompleto = totalVideos > 0 ? Math.round((videosAssistidos / totalVideos) * 100) : 0;
 
+      console.log('📊 [useProgressStats] Resultados:', {
+        totalVideos,
+        videosAssistidos,
+        percentualCompleto,
+        historyDataLength: historyData?.length,
+        videosFiltradosLength: videosFiltrados.length,
+        sistema
+      });
+
       // 3. Agrupar por categorias
       const categoriaStats = new Map<string, { total: number; assistidos: number }>();
       
@@ -236,7 +235,7 @@ export function useProgressStats(targetUserId?: string) {
         const categoria = video.categorias?.nome || 'Geral';
         if (!categoriaStats.has(categoria)) {
           categoriaStats.set(categoria, { total: 0, assistidos: 0 });
-        }
+          }
         categoriaStats.get(categoria)!.total++;
       });
 
@@ -249,8 +248,8 @@ export function useProgressStats(targetUserId?: string) {
           if (categoriaStats.has(categoria)) {
             categoriaStats.get(categoria)!.assistidos++;
           }
-        }
-      });
+          }
+        });
 
       const categorias = Array.from(categoriaStats.entries()).map(([nome, stats]) => ({
         nome,
@@ -263,50 +262,24 @@ export function useProgressStats(targetUserId?: string) {
       const seteDiasAtras = new Date();
       seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
       
-      let recentQuery = supabase
+      const recentQuery = supabase
         .from('video_history')
         .select('watched_at')
         .eq('completed', true)
+        .eq('user_id', userId)
         .gte('watched_at', seteDiasAtras.toISOString());
-
-      if (targetUserId && targetUserId.includes('@')) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', targetUserId)
-          .single();
-          
-        if (profileData) {
-          recentQuery = recentQuery.eq('user_id', profileData.id);
-        }
-      } else {
-        recentQuery = recentQuery.eq('user_id', userId);
-      }
 
       const { data: recentData } = await recentQuery;
       const atividadeRecente = recentData?.length || 0;
 
       // 5. Últimos 5 vídeos assistidos
-      let ultimosQuery = supabase
+      const ultimosQuery = supabase
         .from('video_history')
         .select('video_titulo, watched_at')
         .eq('completed', true)
+        .eq('user_id', userId)
         .order('watched_at', { ascending: false })
         .limit(5);
-
-      if (targetUserId && targetUserId.includes('@')) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', targetUserId)
-          .single();
-          
-        if (profileData) {
-          ultimosQuery = ultimosQuery.eq('user_id', profileData.id);
-        }
-      } else {
-        ultimosQuery = ultimosQuery.eq('user_id', userId);
-      }
 
       const { data: ultimosData } = await ultimosQuery;
 
@@ -329,16 +302,22 @@ export function useProgressStats(targetUserId?: string) {
       };
 
       setStats(progressStats);
-      console.log('Estatísticas carregadas:', progressStats);
+      console.log('✅ [useProgressStats] Estatísticas carregadas com sucesso:', {
+        totalVideos: progressStats.geral.totalVideos,
+        videosAssistidos: progressStats.geral.videosAssistidos,
+        percentual: progressStats.geral.percentualCompleto,
+        modulos: progressStats.modulos.length,
+        categorias: progressStats.categorias.length
+      });
 
-    } catch (err: any) {
-      if (err.name === 'AbortError') {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
         console.log('Requisição de estatísticas cancelada');
         return;
       }
       
-      console.error('Erro ao carregar estatísticas:', err);
-      setError(err.message || 'Erro desconhecido');
+      console.error('❌ [useProgressStats] Erro ao carregar estatísticas:', err);
+      setError(err instanceof Error ? err.message : 'Erro desconhecido');
       setStats(null);
     } finally {
       if (!abortController.signal.aborted) {
@@ -358,6 +337,7 @@ export function useProgressStats(targetUserId?: string) {
   }, [fetchStats]);
 
   const refetch = useCallback(() => {
+    console.log('🔄 [useProgressStats] Refetch chamado - recarregando estatísticas...');
     fetchStats();
   }, [fetchStats]);
 

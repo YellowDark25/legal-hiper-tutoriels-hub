@@ -35,10 +35,9 @@ const Index: React.FC = () => {
   const { toast } = useToast();
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [clienteIdMap, setClienteIdMap] = useState<Record<string, string>>({});
   const [selectedSistema, setSelectedSistema] = useState<'hiper' | 'pdvlegal' | undefined>(undefined);
   const { stats: progressStats, loading: progressLoading, refetch: refetchProgress } = useProgressStats(
-    selectedClientId === 'all' ? undefined : (clienteIdMap[selectedClientId] || selectedClientId)
+    selectedClientId === 'all' ? undefined : selectedClientId
   );
   const { setPageLoading } = useLoading();
 
@@ -56,30 +55,64 @@ const Index: React.FC = () => {
       if (!isAdmin) return;
       
       try {
-        // Buscar empresas cadastradas
-        const { data: empresasData, error: empresasError } = await supabase
+        console.log('🔄 [Dashboard] Carregando lista de clientes...');
+        
+        // Usar função RPC para buscar clientes com user_ids corretos
+        const { data: clientesData, error } = await supabase
+          .rpc('get_clientes_with_users');
+          
+        if (error) {
+          console.error('❌ [Dashboard] Erro na função RPC:', error);
+          // Fallback para método manual
+          return await fetchClientesManual();
+        }
+        
+        const clientesList: Cliente[] = clientesData.map((cliente: any) => {
+          const user_id = cliente.auth_user_id || cliente.empresa_id;
+          console.log(`✅ [Dashboard] Mapeado: ${cliente.nome_fantasia} -> user_id: ${user_id} ${cliente.auth_user_id ? '(real)' : '(fallback)'}`);
+          
+          return {
+            user_id,
+            email: cliente.email,
+            nome_fantasia: cliente.nome_fantasia,
+            sistema: cliente.sistema
+          };
+        });
+        
+        console.log('✅ [Dashboard] Clientes carregados via RPC:', clientesList);
+        setClientes(clientesList);
+      } catch (error) {
+        console.error('❌ [Dashboard] Erro ao carregar clientes:', error);
+        // Fallback para método manual
+        await fetchClientesManual();
+      }
+    };
+
+    // Método manual como fallback
+    const fetchClientesManual = async () => {
+      try {
+        console.log('🔄 [Dashboard] Usando método manual...');
+        
+        // Buscar empresas
+        const { data: empresas, error: empresasError } = await supabase
           .from('cadastro_empresa')
           .select('id, email, nome_fantasia, sistema')
           .order('nome_fantasia');
           
         if (empresasError) throw empresasError;
         
-        // Mapear email para UUID
-        const idMap: Record<string, string> = {};
-        const clientesList: Cliente[] = empresasData.map(empresa => {
-          idMap[empresa.email] = empresa.id;
-          return {
-            user_id: empresa.id, // Agora user_id é o UUID
-            email: empresa.email,
-            nome_fantasia: empresa.nome_fantasia,
-            sistema: empresa.sistema
-          };
-        });
+        // Usar empresa_id como user_id para simplificar
+        const clientesList: Cliente[] = empresas.map(empresa => ({
+          user_id: empresa.id, // Fallback para empresa_id
+          email: empresa.email,
+          nome_fantasia: empresa.nome_fantasia,
+          sistema: empresa.sistema
+        }));
         
+        console.log('⚠️ [Dashboard] Clientes carregados via método manual:', clientesList);
         setClientes(clientesList);
-        setClienteIdMap(idMap);
       } catch (error) {
-        console.error('Erro ao carregar clientes:', error);
+        console.error('❌ [Dashboard] Erro no método manual:', error);
       }
     };
 
@@ -149,17 +182,19 @@ const Index: React.FC = () => {
 
   // Escutar quando vídeos são marcados como assistidos para atualizar stats
   useEffect(() => {
-    const handleVideoWatched = () => {
+    const handleVideoWatched = (event: CustomEvent) => {
+      console.log('🎥 [Dashboard] Evento videoWatched recebido:', event.detail);
       // Aguardar um pouco para o banco ser atualizado, então recarregar stats
       setTimeout(() => {
+        console.log('🔄 [Dashboard] Recarregando estatísticas...');
         refetchProgress();
       }, 1000);
     };
 
-    window.addEventListener('videoWatched', handleVideoWatched);
+    window.addEventListener('videoWatched', handleVideoWatched as EventListener);
     
     return () => {
-      window.removeEventListener('videoWatched', handleVideoWatched);
+      window.removeEventListener('videoWatched', handleVideoWatched as EventListener);
     };
   }, [refetchProgress]);
 
@@ -199,7 +234,7 @@ const Index: React.FC = () => {
       
       <main className="flex-1 pt-16">
         {/* Header do Dashboard */}
-        <section className="py-8 md:py-12 bg-gradient-to-br from-slate-700 to-slate-800 border-b border-slate-600/50">
+        <section className="py-8 md:py-12 bg-gradient-to-b from-[#1E293B] via-[#0A192F] to-[#1E3A8A] border-b border-slate-600/50">
           <div className="container mx-auto px-4">
             <div className="max-w-7xl mx-auto">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -220,33 +255,57 @@ const Index: React.FC = () => {
                   <div className="flex flex-col gap-2">
                     <label className="text-sm text-gray-300">Filtrar por Cliente:</label>
                     <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                      <SelectTrigger className="w-64 bg-slate-600 border-slate-500 text-white">
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
-                        <SelectItem value="all" className="text-white hover:bg-slate-600">
-                          📊 Todos os Clientes
-                        </SelectItem>
-                        {clientes.map((cliente) => (
-                          <SelectItem 
-                            key={cliente.user_id} 
-                            value={cliente.user_id}
-                            className="text-white hover:bg-slate-600"
-                          >
+                      <SelectTrigger className="w-72 bg-slate-600 border-slate-500 text-white font-medium">
+                        <div className="flex items-center justify-between w-full">
+                          {selectedClientId === 'all' ? (
                             <div className="flex items-center gap-2">
+                              <span className="text-lg">📊</span>
+                              <span>Todos os Clientes</span>
+                            </div>
+                          ) : selectedCliente ? (
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
                               <img 
-                                src={cliente.sistema === 'pdvlegal' ? '/pdv-legal-BLWLrCAG.png' : '/hiper-logo-D4juEd9-.png'}
-                                alt={`${getSystemName(cliente.sistema)} Logo`}
-                                className="w-4 h-4"
+                                src={selectedCliente.sistema === 'pdvlegal' ? '/pdv-legal-BLWLrCAG.png' : '/hiper-logo-D4juEd9-.png'}
+                                alt={`${getSystemName(selectedCliente.sistema)} Logo`}
+                                className="w-4 h-4 flex-shrink-0"
                               />
-                              <span>{cliente.nome_fantasia}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {getSystemName(cliente.sistema)}
+                              <span className="truncate text-sm">{selectedCliente.nome_fantasia}</span>
+                              <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300">
+                                {getSystemName(selectedCliente.sistema)}
                               </Badge>
                             </div>
+                          ) : (
+                            <span className="text-gray-400">Selecione um cliente</span>
+                          )}
+                        </div>
+                      </SelectTrigger>
+                                              <SelectContent className="bg-slate-700 border-slate-600 w-72">
+                          <SelectItem value="all" className="text-white hover:bg-slate-600 focus:bg-slate-600 p-3">
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg">📊</span>
+                              <span className="font-medium">Todos os Clientes</span>
+                            </div>
                           </SelectItem>
-                        ))}
-                      </SelectContent>
+                          {clientes.map((cliente) => (
+                            <SelectItem 
+                              key={cliente.user_id} 
+                              value={cliente.user_id}
+                              className="text-white hover:bg-slate-600 focus:bg-slate-600 p-3"
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                <img 
+                                  src={cliente.sistema === 'pdvlegal' ? '/pdv-legal-BLWLrCAG.png' : '/hiper-logo-D4juEd9-.png'}
+                                  alt={`${getSystemName(cliente.sistema)} Logo`}
+                                  className="w-5 h-5 flex-shrink-0 object-contain"
+                                />
+                                <span className="flex-1 truncate font-medium">{cliente.nome_fantasia}</span>
+                                <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300">
+                                  {getSystemName(cliente.sistema)}
+                                </Badge>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                     </Select>
                   </div>
                   
@@ -275,23 +334,27 @@ const Index: React.FC = () => {
                   <Card className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-blue-500/30">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <img 
-                            src={selectedCliente.sistema === 'pdvlegal' ? '/pdv-legal-BLWLrCAG.png' : '/hiper-logo-D4juEd9-.png'}
-                            alt={`${getSystemName(selectedCliente.sistema)} Logo`}
-                            className="w-8 h-8"
-                          />
-                          <div>
-                            <h3 className="text-lg font-semibold text-white">{selectedCliente.nome_fantasia}</h3>
-                            <p className="text-gray-300 text-sm">{selectedCliente.email} • Sistema: {getSystemName(selectedCliente.sistema)}</p>
+                        <div className="flex items-center gap-4">
+                          <div className="flex-shrink-0">
+                            <img 
+                              src={selectedCliente.sistema === 'pdvlegal' ? '/pdv-legal-BLWLrCAG.png' : '/hiper-logo-D4juEd9-.png'}
+                              alt={`${getSystemName(selectedCliente.sistema)} Logo`}
+                              className="w-10 h-10 object-contain"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-lg font-semibold text-white truncate">{selectedCliente.nome_fantasia}</h3>
+                            <p className="text-gray-300 text-sm truncate">{selectedCliente.email} • Sistema: {getSystemName(selectedCliente.sistema)}</p>
                           </div>
                         </div>
-                        <Badge 
-                          className="text-white border-0"
-                          style={{ backgroundColor: getSystemColor(selectedCliente.sistema) }}
-                        >
-                          {getSystemName(selectedCliente.sistema)}
-                        </Badge>
+                        <div className="flex-shrink-0">
+                          <Badge 
+                            className="text-white border-0 font-medium"
+                            style={{ backgroundColor: getSystemColor(selectedCliente.sistema) }}
+                          >
+                            {getSystemName(selectedCliente.sistema)}
+                          </Badge>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -309,36 +372,36 @@ const Index: React.FC = () => {
                     <Card className="bg-gradient-to-br from-blue-600 to-blue-800 shadow-lg border-0 text-white rounded-2xl flex flex-col items-center justify-center p-6">
                       <div className="flex items-center justify-center mb-3">
                         <svg className="w-10 h-10 text-blue-200" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                      </div>
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                          </svg>
+                          </div>
                       <p className="text-blue-100 text-sm font-medium">Vídeos Assistidos</p>
                       <p className="text-3xl font-bold">{progressStats.geral?.videosAssistidos || 0}</p>
                     </Card>
                     <Card className="bg-gradient-to-br from-purple-600 to-purple-800 shadow-lg border-0 text-white rounded-2xl flex flex-col items-center justify-center p-6">
                       <div className="flex items-center justify-center mb-3">
                         <svg className="w-10 h-10 text-purple-200" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      </div>
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
                       <p className="text-purple-100 text-sm font-medium">Total Disponível</p>
                       <p className="text-3xl font-bold">{progressStats.geral?.totalVideos || 0}</p>
                     </Card>
                     <Card className="bg-gradient-to-br from-green-600 to-green-800 shadow-lg border-0 text-white rounded-2xl flex flex-col items-center justify-center p-6">
                       <div className="flex items-center justify-center mb-3">
                         <svg className="w-10 h-10 text-green-200" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                      </div>
+                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                          </div>
                       <p className="text-green-100 text-sm font-medium">Progresso</p>
                       <p className="text-3xl font-bold">{progressStats.geral?.percentualCompleto || 0}%</p>
                     </Card>
                     <Card className="bg-gradient-to-br from-orange-600 to-orange-800 shadow-lg border-0 text-white rounded-2xl flex flex-col items-center justify-center p-6">
                       <div className="flex items-center justify-center mb-3">
                         <svg className="w-10 h-10 text-orange-200" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                        </svg>
-                      </div>
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                          </div>
                       <p className="text-orange-100 text-sm font-medium">Atividade Recente</p>
                       <p className="text-3xl font-bold">{progressStats.atividadeRecente || 0}</p>
                     </Card>
@@ -385,24 +448,35 @@ const Index: React.FC = () => {
                   {/* Progresso por Módulo */}
                   {progressStats.modulos && progressStats.modulos.length > 0 && (
                     <Card className="bg-slate-700/50 border-slate-600/50">
-                      <CardHeader>
-                        <CardTitle className="text-white flex items-center">
+                        <CardHeader>
+                          <CardTitle className="text-white flex items-center">
                           <svg className="w-5 h-5 mr-2 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
-                          </svg>
+                            </svg>
                           Progresso por Módulo
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {progressStats.modulos.map((modulo, idx) => (
+                          {progressStats.modulos
+                            .filter(m => {
+                              if (!selectedCliente) return true;
+                              if (selectedCliente.sistema === 'hiper') {
+                                return ['Hiper Caixa', 'Hiper Loja', 'Hiper Gestão'].includes(m.nome);
+                              }
+                              if (selectedCliente.sistema === 'pdvlegal') {
+                                return ['PDV', 'Retaguarda', 'Totem', 'Invoicy'].includes(m.nome);
+                              }
+                              return true;
+                            })
+                            .map((modulo, idx) => (
                             <div key={idx} className="bg-slate-600/30 rounded-lg p-4 border border-orange-500/30 mb-4">
                               <div className="flex items-center justify-between mb-2">
                                 <h4 className="font-semibold text-white text-base">{modulo.nome}</h4>
                                 <Badge variant="outline" className="border-orange-400 text-orange-400 text-xs">
                                   {modulo.assistidos}/{modulo.total}
-                                </Badge>
-                              </div>
+                                  </Badge>
+                                </div>
                               <Progress value={modulo.percentual} className="h-2 mb-2" />
                               <div className="flex justify-between text-xs mb-2">
                                 <span className="text-gray-400">{modulo.percentual}% completo</span>
@@ -424,7 +498,7 @@ const Index: React.FC = () => {
                               )}
                             </div>
                           ))}
-                        </div>
+                                  </div>
                       </CardContent>
                     </Card>
                   )}
@@ -442,7 +516,21 @@ const Index: React.FC = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {progressStats.categorias.map((categoria, index) => (
+                          {progressStats.categorias
+                            .filter(cat => {
+                              if (!selectedCliente) return true;
+                              // Categorias válidas para cada sistema
+                              if (selectedCliente.sistema === 'hiper') {
+                                // Categorias dos módulos do Hiper
+                                return ['Financeiro', 'Estoque', 'Faturamento', 'Fiscal', 'Cadastros', 'Vendas', 'Relatórios', 'Operações'].includes(cat.nome);
+                              }
+                              if (selectedCliente.sistema === 'pdvlegal') {
+                                // Categorias dos módulos do PDVLegal
+                                return ['PDV', 'Retaguarda', 'Totem', 'Invoicy', 'Emissão'].includes(cat.nome);
+                              }
+                              return true;
+                            })
+                            .map((categoria, index) => (
                             <div key={index} className="bg-slate-600/30 rounded-lg p-4 border border-slate-500/30">
                               <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-white text-sm">{categoria.nome}</h4>
