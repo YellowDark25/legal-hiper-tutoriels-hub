@@ -35,22 +35,6 @@ const LoadingSpinner: React.FC = () => {
             style={{ animationDelay: '0.4s', animationDuration: '1.4s' }}
           ></div>
         </div>
-
-        {/* Texto de Loading */}
-        <div className="text-white text-lg font-medium animate-pulse">
-          Carregando...
-        </div>
-
-        {/* Círculo de Progresso */}
-        <div className="relative w-16 h-16">
-          <div className="absolute inset-0 rounded-full border-2 border-orange-500/20"></div>
-          <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-orange-500 animate-spin"></div>
-        </div>
-
-        {/* Informação adicional */}
-        <div className="text-gray-400 text-sm text-center max-w-xs">
-          Preparando seu centro de tutoriais...
-        </div>
       </div>
     </div>
   );

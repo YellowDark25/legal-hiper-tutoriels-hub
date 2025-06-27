@@ -255,7 +255,7 @@ const Index: React.FC = () => {
                   <div className="flex flex-col gap-2">
                     <label className="text-sm text-gray-300">Filtrar por Cliente:</label>
                     <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                      <SelectTrigger className="w-72 bg-slate-600 border-slate-500 text-white font-medium">
+                      <SelectTrigger className="w-96 bg-slate-600 border-slate-500 text-white font-medium">
                         <div className="flex items-center justify-between w-full">
                           {selectedClientId === 'all' ? (
                             <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ const Index: React.FC = () => {
                                 alt={`${getSystemName(selectedCliente.sistema)} Logo`}
                                 className="w-4 h-4 flex-shrink-0"
                               />
-                              <span className="truncate text-sm">{selectedCliente.nome_fantasia}</span>
+                              <span className="text-base font-semibold whitespace-nowrap">{selectedCliente.nome_fantasia}</span>
                               <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300">
                                 {getSystemName(selectedCliente.sistema)}
                               </Badge>
@@ -279,45 +279,35 @@ const Index: React.FC = () => {
                           )}
                         </div>
                       </SelectTrigger>
-                                              <SelectContent className="bg-slate-700 border-slate-600 w-72">
-                          <SelectItem value="all" className="text-white hover:bg-slate-600 focus:bg-slate-600 p-3">
-                            <div className="flex items-center gap-3">
-                              <span className="text-lg">📊</span>
-                              <span className="font-medium">Todos os Clientes</span>
+                      <SelectContent className="bg-slate-700 border-slate-600 w-96">
+                        <SelectItem value="all" className="text-white hover:bg-slate-600 focus:bg-slate-600 p-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg">📊</span>
+                            <span className="font-medium">Todos os Clientes</span>
+                          </div>
+                        </SelectItem>
+                        {clientes.map((cliente) => (
+                          <SelectItem 
+                            key={cliente.user_id} 
+                            value={cliente.user_id}
+                            className="text-white hover:bg-slate-600 focus:bg-slate-600 p-3"
+                          >
+                            <div className="flex items-center gap-3 w-full">
+                              <img 
+                                src={cliente.sistema === 'pdvlegal' ? '/pdv-legal-BLWLrCAG.png' : '/hiper-logo-D4juEd9-.png'}
+                                alt={`${getSystemName(cliente.sistema)} Logo`}
+                                className="w-5 h-5 flex-shrink-0 object-contain"
+                              />
+                              <span className="flex-1 font-medium text-base whitespace-nowrap">{cliente.nome_fantasia}</span>
+                              <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300">
+                                {getSystemName(cliente.sistema)}
+                              </Badge>
                             </div>
                           </SelectItem>
-                          {clientes.map((cliente) => (
-                            <SelectItem 
-                              key={cliente.user_id} 
-                              value={cliente.user_id}
-                              className="text-white hover:bg-slate-600 focus:bg-slate-600 p-3"
-                            >
-                              <div className="flex items-center gap-3 w-full">
-                                <img 
-                                  src={cliente.sistema === 'pdvlegal' ? '/pdv-legal-BLWLrCAG.png' : '/hiper-logo-D4juEd9-.png'}
-                                  alt={`${getSystemName(cliente.sistema)} Logo`}
-                                  className="w-5 h-5 flex-shrink-0 object-contain"
-                                />
-                                <span className="flex-1 truncate font-medium">{cliente.nome_fantasia}</span>
-                                <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300">
-                                  {getSystemName(cliente.sistema)}
-                                </Badge>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
-                  
-                    <Link
-                      to="/admin"
-                      className="inline-flex items-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 text-sm"
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                            </svg>
-                      Painel Admin
-                    </Link>
                 </div>
               </div>
             </div>
