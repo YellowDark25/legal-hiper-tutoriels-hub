@@ -36,8 +36,10 @@ const Index: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedSistema, setSelectedSistema] = useState<'hiper' | 'pdvlegal' | undefined>(undefined);
+  const selectedCliente = clientes.find(c => c.user_id === (selectedClientId === 'all' ? undefined : selectedClientId));
   const { stats: progressStats, loading: progressLoading, refetch: refetchProgress } = useProgressStats(
-    selectedClientId === 'all' ? undefined : selectedClientId
+    selectedClientId === 'all' ? undefined : selectedClientId,
+    selectedCliente?.sistema
   );
   const { setPageLoading } = useLoading();
 
@@ -225,8 +227,6 @@ const Index: React.FC = () => {
   if (!isAdmin) {
     return null;
   }
-
-  const selectedCliente = clientes.find(c => c.user_id === (selectedClientId === 'all' ? undefined : selectedClientId));
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-800 transition-colors duration-200">

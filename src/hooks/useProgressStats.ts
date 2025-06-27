@@ -45,7 +45,7 @@ interface ProgressStats {
   }>;
 }
 
-export function useProgressStats(targetUserId?: string) {
+export function useProgressStats(targetUserId?: string, sistemaCliente?: string) {
   const { user, userSystem, isAdmin } = useAuth();
   const [stats, setStats] = useState<ProgressStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,25 +91,11 @@ export function useProgressStats(targetUserId?: string) {
       console.log('🔍 [useProgressStats] - userSystem:', userSystem);
 
       // Buscar sistema do usuário se estamos filtrando por outro usuário
-      let sistema = userSystem;
+      let sistema = sistemaCliente ?? userSystem;
 
       // Para admins, se não há targetUserId, exibir todos os sistemas
       if (isAdmin && !targetUserId) {
         sistema = null; // Permitir todos os sistemas
-      } else if (targetUserId && targetUserId !== user?.id) {
-        // Se o targetUserId é um UUID, buscar o sistema na tabela cadastro_empresa
-        const { data: empresaData, error: empresaError } = await supabase
-          .from('cadastro_empresa')
-          .select('sistema')
-          .eq('id', targetUserId)
-          .single();
-          
-        if (!empresaError && empresaData) {
-          sistema = empresaData.sistema;
-          console.log('🔍 [useProgressStats] Sistema encontrado para cliente:', sistema);
-        } else {
-          console.log('❌ [useProgressStats] Erro ao buscar empresa ou empresa não encontrada:', empresaError?.message);
-        }
       }
 
       // 1. Buscar total de vídeos disponíveis
@@ -324,7 +310,7 @@ export function useProgressStats(targetUserId?: string) {
       setLoading(false);
     }
     }
-  }, [user?.id, userSystem, isAdmin, targetUserId]);
+  }, [user?.id, userSystem, isAdmin, targetUserId, sistemaCliente]);
 
   useEffect(() => {
     fetchStats();
