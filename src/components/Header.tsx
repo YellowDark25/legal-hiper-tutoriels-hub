@@ -67,21 +67,14 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
-            <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-                <span className="text-white font-bold text-lg">NH</span>
-              </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse"></div>
-            </div>
-            <div className="hidden md:block">
-              <h1 className="font-bold text-xl text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                NexHub
-              </h1>
-              <p className="text-xs text-gray-600 dark:text-gray-400 -mt-1">
-                Centro de Tutoriais
-              </p>
-            </div>
+          <Link to="/" className="flex items-center group">
+            <img 
+              src="/ChatGPT Image 18 de jun. de 2025, 16_43_11.png"
+              alt="NexHub Logo"
+              className="h-44 w-auto object-contain"
+              style={{ maxWidth: 'none' }}
+              loading="eager"
+            />
           </Link>
 
           {/* Navigation - Desktop */}
