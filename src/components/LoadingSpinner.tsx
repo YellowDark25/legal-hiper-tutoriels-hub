@@ -7,9 +7,9 @@ const LoadingSpinner: React.FC = () => {
         {/* Logo com Efeito Glow */}
         <div className="relative">
           <img 
-            src="/logo-nexsyn-CLVIoj6u.png" 
+            src="/ChatGPT Image 18 de jun. de 2025, 16_43_11.png" 
             alt="NexHub Logo" 
-            className="h-20 w-auto animate-pulse"
+            className="h-52 w-auto animate-pulse"
             style={{ 
               maxWidth: 'none',
               objectFit: 'contain'
@@ -17,7 +17,7 @@ const LoadingSpinner: React.FC = () => {
             loading="eager"
           />
           {/* Glow effect atrás da logo */}
-          <div className="absolute inset-0 -z-10 bg-orange-500/20 blur-xl rounded-full scale-150 animate-pulse"></div>
+          <div className="absolute inset-0 -z-5 bg-orange-500/20 blur-xl rounded-full scale-150 animate-pulse"></div>
         </div>
 
         {/* Dots Animados */}
