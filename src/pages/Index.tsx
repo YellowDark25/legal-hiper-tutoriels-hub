@@ -269,8 +269,8 @@ const Index: React.FC = () => {
                                 alt={`${getSystemName(selectedCliente.sistema)} Logo`}
                                 className="w-4 h-4 flex-shrink-0"
                               />
-                              <span className="text-base font-semibold whitespace-nowrap">{selectedCliente.nome_fantasia}</span>
-                              <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300">
+                              <span className="text-base font-semibold truncate max-w-[180px] min-w-0 block">{selectedCliente.nome_fantasia}</span>
+                              <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300 ml-1">
                                 {getSystemName(selectedCliente.sistema)}
                               </Badge>
                             </div>
@@ -298,8 +298,8 @@ const Index: React.FC = () => {
                                 alt={`${getSystemName(cliente.sistema)} Logo`}
                                 className="w-5 h-5 flex-shrink-0 object-contain"
                               />
-                              <span className="flex-1 font-medium text-base whitespace-nowrap">{cliente.nome_fantasia}</span>
-                              <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300">
+                              <span className="flex-1 font-medium text-base truncate max-w-[180px] min-w-0 block">{cliente.nome_fantasia}</span>
+                              <Badge variant="outline" className="text-xs flex-shrink-0 border-gray-400 text-gray-300 ml-1">
                                 {getSystemName(cliente.sistema)}
                               </Badge>
                             </div>
@@ -437,17 +437,24 @@ const Index: React.FC = () => {
 
                   {/* Progresso por Módulo */}
                   {progressStats.modulos && progressStats.modulos.length > 0 && (
-                    <Card className="bg-slate-700/50 border-slate-600/50">
-                        <CardHeader>
-                          <CardTitle className="text-white flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-orange-400" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
-                            </svg>
-                          Progresso por Módulo
+                    <Card className="bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-xl border border-slate-600/50 shadow-2xl">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+                              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                              </svg>
+                            </div>
+                            <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                              Progresso por Módulo
+                            </span>
                           </CardTitle>
+                          <p className="text-gray-400 text-sm mt-2">
+                            Desempenho detalhado por área de conhecimento
+                          </p>
                         </CardHeader>
                         <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {progressStats.modulos
                             .filter(m => {
                               if (!selectedCliente) return true;
@@ -460,30 +467,45 @@ const Index: React.FC = () => {
                               return true;
                             })
                             .map((modulo, idx) => (
-                            <div key={idx} className="bg-slate-600/30 rounded-lg p-4 border border-orange-500/30 mb-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-semibold text-white text-base">{modulo.nome}</h4>
-                                <Badge variant="outline" className="border-orange-400 text-orange-400 text-xs">
-                                  {modulo.assistidos}/{modulo.total}
+                            <div key={idx} className="bg-gradient-to-br from-slate-700/50 to-slate-600/50 backdrop-blur-sm rounded-xl p-5 border border-orange-500/20 hover:border-orange-400/40 transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/10 group">
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="font-bold text-white text-base group-hover:text-orange-100 transition-colors duration-300">{modulo.nome}</h4>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="border-orange-400/60 text-orange-400 text-xs font-semibold bg-orange-500/10 hover:bg-orange-500/20 transition-colors duration-300">
+                                    {modulo.assistidos}/{modulo.total}
                                   </Badge>
+                                  <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-red-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                    {modulo.percentual}%
+                                  </div>
                                 </div>
-                              <Progress value={modulo.percentual} className="h-2 mb-2" />
-                              <div className="flex justify-between text-xs mb-2">
-                                <span className="text-gray-400">{modulo.percentual}% completo</span>
-                                <span className="text-gray-400">{modulo.total} vídeos</span>
+                              </div>
+                              <div className="mb-3">
+                                <Progress value={modulo.percentual} className="h-3 bg-slate-800/50" />
+                              </div>
+                              <div className="flex justify-between text-sm mb-3">
+                                <span className="text-orange-300 font-medium">{modulo.percentual}% completo</span>
+                                <span className="text-gray-400">{modulo.total} vídeos disponíveis</span>
                               </div>
                               {/* Categorias do módulo */}
                               {modulo.categorias && modulo.categorias.length > 0 && (
-                                <div className="mt-2">
-                                  <div className="text-xs text-gray-300 mb-1">Categorias:</div>
-                                  <ul className="space-y-1">
+                                <div className="mt-4 pt-3 border-t border-slate-600/30">
+                                  <div className="text-sm text-orange-300 font-semibold mb-3 flex items-center gap-2">
+                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                                    </svg>
+                                    Categorias:
+                                  </div>
+                                  <div className="space-y-2">
                                     {modulo.categorias.map((cat, cidx) => (
-                                      <li key={cidx} className="flex justify-between">
-                                        <span>{cat.nome}</span>
-                                        <span className="text-gray-400">{cat.assistidos}/{cat.total} ({cat.percentual}%)</span>
-                                      </li>
+                                      <div key={cidx} className="flex justify-between items-center py-2 px-3 bg-slate-800/30 rounded-lg border border-slate-600/20 hover:border-orange-500/30 transition-colors duration-200">
+                                        <span className="text-gray-300 font-medium">{cat.nome}</span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-gray-400 text-sm">{cat.assistidos}/{cat.total}</span>
+                                          <span className="text-orange-400 font-semibold text-sm">({cat.percentual}%)</span>
+                                        </div>
+                                      </div>
                                     ))}
-                                  </ul>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -495,17 +517,24 @@ const Index: React.FC = () => {
 
                   {/* Progresso por Categorias */}
                   {progressStats.categorias && progressStats.categorias.length > 0 && (
-                    <Card className="bg-slate-700/50 border-slate-600/50">
-                      <CardHeader>
-                        <CardTitle className="text-white flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
-                          </svg>
-                          Progresso por Categorias
+                    <Card className="bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-xl border border-slate-600/50 shadow-2xl">
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/>
+                            </svg>
+                          </div>
+                          <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                            Progresso por Categorias
+                          </span>
                         </CardTitle>
+                        <p className="text-gray-400 text-sm mt-2">
+                          Acompanhamento detalhado por categoria específica
+                        </p>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                           {progressStats.categorias
                             .filter(cat => {
                               if (!selectedCliente) return true;
@@ -521,19 +550,26 @@ const Index: React.FC = () => {
                               return true;
                             })
                             .map((categoria, index) => (
-                            <div key={index} className="bg-slate-600/30 rounded-lg p-4 border border-slate-500/30">
+                            <div key={index} className="bg-gradient-to-br from-slate-700/40 to-slate-600/40 backdrop-blur-sm rounded-xl p-4 border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10 group">
                               <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-semibold text-white text-sm">{categoria.nome}</h4>
-                                <Badge variant="outline" className="border-blue-400 text-blue-400 text-xs">
-                                  {categoria.assistidos}/{categoria.total}
-                                </Badge>
+                                <h4 className="font-bold text-white text-sm group-hover:text-blue-100 transition-colors duration-300">{categoria.nome}</h4>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="border-blue-400/60 text-blue-400 text-xs font-semibold bg-blue-500/10 hover:bg-blue-500/20 transition-colors duration-300">
+                                    {categoria.assistidos}/{categoria.total}
+                                  </Badge>
+                                  <div className="w-7 h-7 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                    {categoria.percentual}%
+                                  </div>
+                                </div>
                               </div>
-                              <Progress 
-                                value={categoria.percentual} 
-                                className="h-2 mb-2"
-                              />
+                              <div className="mb-3">
+                                <Progress 
+                                  value={categoria.percentual} 
+                                  className="h-2.5 bg-slate-800/50"
+                                />
+                              </div>
                               <div className="flex justify-between text-xs">
-                                <span className="text-gray-400">
+                                <span className="text-blue-300 font-medium">
                                   {categoria.percentual}% completo
                                 </span>
                                 <span className="text-gray-400">
@@ -549,39 +585,62 @@ const Index: React.FC = () => {
 
                     {/* Atividade Recente */}
                     {progressStats.ultimosAssistidos && progressStats.ultimosAssistidos.length > 0 && (
-                      <Card className="bg-slate-700/50 border-slate-600/50">
-                        <CardHeader>
-                          <CardTitle className="text-white flex items-center">
-                            <svg className="w-5 h-5 mr-2 text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                            </svg>
-                            Vídeos Assistidos Recentemente
-                          {selectedCliente && (
-                            <span className="ml-2 text-sm text-gray-400">por {selectedCliente.nome_fantasia}</span>
-                          )}
+                      <Card className="bg-gradient-to-br from-slate-800/60 to-slate-700/60 backdrop-blur-xl border border-slate-600/50 shadow-2xl">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="text-xl font-bold text-white flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                              </svg>
+                            </div>
+                            <span className="bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                              Vídeos Assistidos Recentemente
+                            </span>
+                            {selectedCliente && (
+                              <Badge variant="outline" className="border-green-400/60 text-green-400 text-xs font-semibold bg-green-500/10 ml-2">
+                                {selectedCliente.nome_fantasia}
+                              </Badge>
+                            )}
                           </CardTitle>
+                          <p className="text-gray-400 text-sm mt-2">
+                            Últimos vídeos assistidos e marcados como concluídos
+                          </p>
                         </CardHeader>
                         <CardContent>
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             {progressStats.ultimosAssistidos.slice(0, 5).map((video, index) => (
-                              <div key={index} className="flex items-center justify-between p-3 bg-slate-600/30 rounded-lg border border-slate-500/30">
-                                <div className="flex items-center">
-                                  <div className="w-2 h-2 bg-green-400 rounded-full mr-3"></div>
-                                  <div>
-                                    <p className="text-white font-medium text-sm">{video.titulo}</p>
-                                    <p className="text-gray-400 text-xs">
-                                      {new Date(video.watchedAt).toLocaleDateString('pt-BR', { 
-                                        day: '2-digit', 
-                                        month: 'short',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </p>
+                              <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-700/40 to-slate-600/40 backdrop-blur-sm rounded-xl border border-green-500/20 hover:border-green-400/40 transition-all duration-300 hover:shadow-lg hover:shadow-green-500/10 group">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-white font-semibold text-sm group-hover:text-green-100 transition-colors duration-300 truncate">{video.titulo}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm3.5-9L12 14.5 8.5 11l1.4-1.4 2.1 2.1 3.1-3.1L16.5 10z"/>
+                                      </svg>
+                                      <p className="text-gray-400 text-xs">
+                                        {new Date(video.watchedAt).toLocaleDateString('pt-BR', { 
+                                          day: '2-digit', 
+                                          month: 'short',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
-                                <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                </svg>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <Badge variant="outline" className="border-green-400/60 text-green-400 text-xs bg-green-500/10">
+                                    Concluído
+                                  </Badge>
+                                  <svg className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform duration-300" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                  </svg>
+                                </div>
                               </div>
                             ))}
                           </div>
