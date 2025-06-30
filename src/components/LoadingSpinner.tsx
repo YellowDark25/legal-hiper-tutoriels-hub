@@ -7,9 +7,9 @@ const LoadingSpinner: React.FC = () => {
         {/* Logo com Efeito Glow */}
         <div className="relative">
           <img 
-            src="/ChatGPT Image 18 de jun. de 2025, 16_43_11.png" 
+            src="/logo-nexsyn-CLVIoj6u.png" 
             alt="NexHub Logo" 
-            className="h-52 w-auto animate-pulse"
+            className="h-24 w-auto animate-pulse"
             style={{ 
               maxWidth: 'none',
               objectFit: 'contain'

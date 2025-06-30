@@ -177,117 +177,115 @@ const TagManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Gerenciar Tags</h2>
-        <Button 
-          onClick={() => setShowForm(true)} 
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          <PlusIcon className="w-4 h-4" />
-          Nova Tag
-        </Button>
-      </div>
-
-      {showForm && (
-        <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white">
-              {editingId ? 'Editar Tag' : 'Nova Tag'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="nome" className="text-white">Nome da Tag *</Label>
-                <Input
-                  id="nome"
-                  value={tagName}
-                  onChange={(e) => setTagName(e.target.value)}
-                  placeholder="Ex: básico, avançado, passo-a-passo"
-                  required
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button 
-                  type="submit" 
-                  disabled={loading || !tagName.trim()}
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
-                >
-                  {editingId ? 'Atualizar' : 'Criar'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={cancelEdit}
-                  className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400"
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
+      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
         <CardHeader>
-          <CardTitle className="text-white">Tags Disponíveis</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white">Tags ({tags.length})</CardTitle>
+            <Button 
+              onClick={() => setShowForm(true)} 
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+              style={{ fontFamily: 'Poppins, sans-serif' }}
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Nova Tag
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {tags.map((tag) => (
-              <div key={tag.id} className="flex items-center justify-between p-3 bg-gray-700/50 border border-gray-600 rounded-lg hover:border-orange-400 transition-all duration-300">
-                <Badge variant="secondary" className="flex-1 bg-orange-500 text-white hover:bg-orange-600">
-                  {tag.nome}
-                </Badge>
-                <div className="flex gap-1 ml-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => editTag(tag)}
-                    className="h-8 w-8 p-0 text-white hover:bg-white/10 hover:text-orange-400"
-                  >
-                    <EditIcon className="w-4 h-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDeleteClick(tag.id)}
-                        className="h-8 w-8 p-0 text-white hover:bg-red-500/20 hover:text-red-400"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-gray-800 border-gray-600">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">Tem certeza que deseja excluir esta tag?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-gray-300">
-                          Essa ação não pode ser desfeita. Isso excluirá permanentemente a tag e seus dados relacionados.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={confirmDeleteTag}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            ))}
-          </div>
+          {showForm && (
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20 mb-6">
+              <CardHeader>
+                <CardTitle className="text-white">
+                  {editingId ? 'Editar Tag' : 'Nova Tag'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <Label htmlFor="nome" className="text-white font-medium">Nome da Tag</Label>
+                    <Input
+                      id="nome"
+                      value={tagName}
+                      onChange={(e) => setTagName(e.target.value)}
+                      placeholder="Digite o nome da tag"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
 
-          {tags.length === 0 && (
+                  <div className="flex gap-2">
+                    <Button 
+                      type="submit" 
+                      disabled={loading}
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                    >
+                      {editingId ? 'Atualizar' : 'Criar'} Tag
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={cancelEdit}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {tags.length === 0 ? (
             <div className="text-center py-8 text-gray-300">
-              Nenhuma tag encontrada
+              Nenhuma tag cadastrada
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-white/10 border-b border-white/20">
+                    <th className="p-2 text-left text-white font-semibold">Nome</th>
+                    <th className="p-2 text-left text-white font-semibold">Data Criação</th>
+                    <th className="p-2 text-left text-white font-semibold">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tags.map(tag => (
+                    <tr key={tag.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
+                      <td className="p-2">
+                        <Badge variant="outline" className="border-orange-400 text-orange-400">
+                          {tag.nome}
+                        </Badge>
+                      </td>
+                      <td className="p-2 text-gray-300">
+                        {new Date(tag.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="p-2">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
+                            title="Editar tag"
+                            onClick={() => editTag(tag)}
+                          >
+                            <EditIcon className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:bg-red-500/10"
+                            title="Excluir tag"
+                            onClick={() => handleDeleteClick(tag.id)}
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>

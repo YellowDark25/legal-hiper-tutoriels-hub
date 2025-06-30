@@ -298,7 +298,7 @@ const VideoUpload = () => {
   // Verificar se é admin usando o contexto de autenticação
   if (!user || !isAdmin) {
     return (
-      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
+      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
         <CardContent className="p-8 text-center">
           <p className="text-red-400">Acesso negado. Faça login como administrador.</p>
         </CardContent>
@@ -307,7 +307,7 @@ const VideoUpload = () => {
   }
 
   return (
-    <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
+    <Card className="bg-white/5 backdrop-blur-sm border-white/10">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">
           <UploadIcon className="w-5 h-5" />
@@ -319,18 +319,18 @@ const VideoUpload = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="titulo" className="text-white">Título *</Label>
+                <Label htmlFor="titulo" className="text-white font-medium">Título *</Label>
                 <Input
                   id="titulo"
                   value={formData.titulo}
                   onChange={(e) => handleInputChange('titulo', e.target.value)}
                   required
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
 
               <div>
-                <Label htmlFor="video-file" className="text-white">Arquivo de Vídeo *</Label>
+                <Label htmlFor="video-file" className="text-white font-medium">Arquivo de Vídeo *</Label>
                 <div className="flex items-center gap-2">
                   <VideoIcon className="w-5 h-5 text-gray-400" />
                   <Input
@@ -339,7 +339,7 @@ const VideoUpload = () => {
                     accept="video/mp4,video/avi,video/mov,video/wmv,video/webm"
                     onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
                     required
-                    className="bg-gray-700 border-gray-600 text-white file:bg-gray-600 file:text-white file:border-gray-500"
+                    className="bg-white/10 border-white/20 text-white file:bg-gray-600 file:text-white file:border-gray-500"
                   />
                 </div>
                 {videoFile && (
@@ -353,7 +353,7 @@ const VideoUpload = () => {
               </div>
 
               <div>
-                <Label htmlFor="thumbnail-file" className="text-white">Miniatura (Opcional)</Label>
+                <Label htmlFor="thumbnail-file" className="text-white font-medium">Miniatura (Opcional)</Label>
                 <div className="flex items-center gap-2">
                   <ImageIcon className="w-5 h-5 text-gray-400" />
                   <Input
@@ -361,7 +361,7 @@ const VideoUpload = () => {
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/gif"
                     onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
-                    className="bg-gray-700 border-gray-600 text-white file:bg-gray-600 file:text-white file:border-gray-500"
+                    className="bg-white/10 border-white/20 text-white file:bg-gray-600 file:text-white file:border-gray-500"
                   />
                 </div>
                 {thumbnailFile && (
@@ -375,25 +375,25 @@ const VideoUpload = () => {
               </div>
 
               <div>
-                <Label htmlFor="duracao" className="text-white">Duração</Label>
+                <Label htmlFor="duracao" className="text-white font-medium">Duração</Label>
                 <Input
                   id="duracao"
                   value={formData.duracao}
                   onChange={(e) => handleInputChange('duracao', e.target.value)}
                   placeholder="Ex: 5:30"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="sistema" className="text-white">Sistema *</Label>
+                <Label htmlFor="sistema" className="text-white font-medium">Sistema *</Label>
                 <Select 
                   value={formData.sistema} 
                   onValueChange={(value) => handleInputChange('sistema', value)}
                 >
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white focus:border-orange-400 focus:ring-orange-400">
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue placeholder="Selecione o sistema" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
@@ -404,12 +404,12 @@ const VideoUpload = () => {
               </div>
 
               <div>
-                <Label htmlFor="categoria" className="text-white">Categoria</Label>
+                <Label htmlFor="categoria" className="text-white font-medium">Categoria</Label>
                 <Select 
                   value={formData.categoria_id} 
                   onValueChange={(value) => handleInputChange('categoria_id', value)}
                 >
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white focus:border-orange-400 focus:ring-orange-400">
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
@@ -423,12 +423,12 @@ const VideoUpload = () => {
               </div>
 
               <div>
-                <Label htmlFor="status" className="text-white">Status</Label>
+                <Label htmlFor="status" className="text-white font-medium">Status</Label>
                 <Select 
                   value={formData.status} 
                   onValueChange={(value) => handleInputChange('status', value)}
                 >
-                  <SelectTrigger className="bg-gray-700 border-gray-600 text-white focus:border-orange-400 focus:ring-orange-400">
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
@@ -440,8 +440,8 @@ const VideoUpload = () => {
               </div>
 
               <div>
-                <Label className="text-white">Tags</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto bg-gray-700 p-3 rounded border border-gray-600">
+                <Label className="text-white font-medium">Tags</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto bg-white/10 p-3 rounded border border-white/20">
                   {tags.map((tag) => (
                     <label key={tag.id} className="flex items-center space-x-2 cursor-pointer">
                       <input
@@ -459,14 +459,14 @@ const VideoUpload = () => {
           </div>
 
           <div>
-            <Label htmlFor="descricao" className="text-white">Descrição</Label>
+            <Label htmlFor="descricao" className="text-white font-medium">Descrição</Label>
             <Textarea
               id="descricao"
               value={formData.descricao}
               onChange={(e) => handleInputChange('descricao', e.target.value)}
               rows={4}
               placeholder="Descrição do vídeo..."
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
+              className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
             />
           </div>
 
@@ -483,7 +483,8 @@ const VideoUpload = () => {
           <Button 
             type="submit" 
             disabled={loading} 
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+            style={{ fontFamily: 'Poppins, sans-serif' }}
           >
             {loading ? 'Fazendo Upload...' : 'Criar Vídeo'}
           </Button>

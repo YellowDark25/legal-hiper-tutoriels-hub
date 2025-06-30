@@ -372,7 +372,7 @@ const VideoManager = () => {
   return (
     <div className="space-y-6">
       {/* Filtros */}
-      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
+      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
         <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -384,7 +384,7 @@ const VideoManager = () => {
                   placeholder="Digite o título ou descrição..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
                 />
               </div>
             </div>
@@ -392,7 +392,7 @@ const VideoManager = () => {
             <div>
               <Label htmlFor="sistema" className="text-white font-medium">Sistema</Label>
               <Select value={filterSistema} onValueChange={setFilterSistema}>
-                <SelectTrigger className="mt-1 bg-gray-800 border-gray-600 text-white focus:border-orange-400 focus:ring-orange-400">
+                <SelectTrigger className="mt-1 bg-white/10 border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
@@ -406,7 +406,7 @@ const VideoManager = () => {
             <div>
               <Label htmlFor="status" className="text-white font-medium">Status</Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="mt-1 bg-gray-800 border-gray-600 text-white focus:border-orange-400 focus:ring-orange-400">
+                <SelectTrigger className="mt-1 bg-white/10 border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
@@ -422,7 +422,7 @@ const VideoManager = () => {
       </Card>
 
       {/* Informações da paginação */}
-      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
+      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
         <CardContent className="p-4">
           <div className="flex justify-between items-center text-sm text-gray-300">
             <span>
@@ -438,7 +438,7 @@ const VideoManager = () => {
       {/* Lista de vídeos */}
       <div className="space-y-4">
         {paginatedVideos.map((video) => (
-          <Card key={video.id} className="bg-black/30 backdrop-blur-sm border border-white/20 hover:border-orange-400 transition-all duration-300">
+          <Card key={video.id} className="bg-white/5 backdrop-blur-sm border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/10 transition-all duration-200">
             <CardContent className="p-6">
               <div className="flex gap-4">
                 <div className="flex-shrink-0">
@@ -453,7 +453,7 @@ const VideoManager = () => {
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-semibold text-lg text-white">{video.titulo}</h3>
                     <div className="flex gap-2">
-                      <Badge variant={video.status === 'ativo' ? 'default' : 'secondary'} className="bg-orange-500 text-white">
+                      <Badge variant={video.status === 'ativo' ? 'default' : 'secondary'} className="border-orange-400 text-orange-400">
                         {video.status}
                       </Badge>
                       <Badge variant="outline" className="border-orange-400 text-orange-400">

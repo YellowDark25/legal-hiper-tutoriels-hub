@@ -143,7 +143,7 @@ const InviteManager = () => {
   return (
     <div className="space-y-6">
       {/* Formulário para novo convite */}
-      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
+      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
         <CardHeader>
           <CardTitle className="text-white">
             Gerar Novo Convite
@@ -162,14 +162,14 @@ const InviteManager = () => {
                 onChange={(e) => setNewInviteEmail(e.target.value)}
                 placeholder="admin@exemplo.com"
                 required
-                className="mt-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
+                className="mt-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
               />
             </div>
             <div className="flex items-end">
               <Button 
                 type="submit" 
                 disabled={loading}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
               >
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Send className="w-4 h-4 mr-2" />
@@ -181,67 +181,80 @@ const InviteManager = () => {
       </Card>
 
       {/* Lista de convites */}
-      <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
+      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
         <CardHeader>
           <CardTitle className="text-white">
-            Convites Enviados
+            Convites Enviados ({invites.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {invites.length === 0 ? (
-            <p className="text-center py-8 text-gray-300">
+            <div className="text-center py-8 text-gray-300">
               Nenhum convite encontrado.
-            </p>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {invites.map((invite) => {
-                const status = getInviteStatus(invite);
-                const StatusIcon = status.icon;
-                
-                return (
-                  <div
-                    key={invite.id}
-                    className="flex items-center justify-between p-4 rounded-lg border bg-gray-700/50 border-gray-600 hover:border-orange-400 transition-all duration-300"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <StatusIcon className={`w-5 h-5 ${status.color}`} />
-                        <div>
-                          <p className="font-medium text-white">
-                            {invite.email}
-                          </p>
-                          <p className="text-sm text-gray-400">
-                            Criado em {new Date(invite.created_at).toLocaleDateString('pt-BR')} • {status.label}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-white/10 border-b border-white/20">
+                    <th className="p-2 text-left text-white font-semibold">E-mail</th>
+                    <th className="p-2 text-left text-white font-semibold">Status</th>
+                    <th className="p-2 text-left text-white font-semibold">Criado em</th>
+                    <th className="p-2 text-left text-white font-semibold">Expira em</th>
+                    <th className="p-2 text-left text-white font-semibold">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invites.map((invite) => {
+                    const status = getInviteStatus(invite);
+                    const StatusIcon = status.icon;
                     
-                    <div className="flex items-center space-x-2">
-                      {!invite.used && new Date() <= new Date(invite.expires_at) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyInviteLink(invite.token)}
-                          className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400"
-                        >
-                          <Copy className="w-4 h-4 mr-1" />
-                          Copiar Link
-                        </Button>
-                      )}
-                      
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteInvite(invite.id)}
-                        className="border-red-400 text-red-400 hover:bg-red-500/20 hover:border-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+                    return (
+                      <tr key={invite.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
+                        <td className="p-2 text-white font-medium">{invite.email}</td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-2">
+                            <StatusIcon className={`w-4 h-4 ${status.color}`} />
+                            <span className={`text-sm ${status.color}`}>
+                              {status.label}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-2 text-gray-300">
+                          {new Date(invite.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="p-2 text-gray-300">
+                          {new Date(invite.expires_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="p-2">
+                          <div className="flex gap-2">
+                            {!invite.used && new Date() < new Date(invite.expires_at) && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
+                                title="Copiar link de convite"
+                                onClick={() => copyInviteLink(invite.token)}
+                              >
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:bg-red-500/10"
+                              title="Excluir convite"
+                              onClick={() => deleteInvite(invite.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </CardContent>

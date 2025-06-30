@@ -187,157 +187,157 @@ const CategoryManager = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-white">Gerenciar Categorias</h2>
-        <Button 
-          onClick={() => setShowForm(true)} 
-          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
-        >
-          <PlusIcon className="w-4 h-4" />
-          Nova Categoria
-        </Button>
-      </div>
-
-      {showForm && (
-        <Card className="bg-black/30 backdrop-blur-sm border border-white/20">
-          <CardHeader>
-            <CardTitle className="text-white">
-              {editingId ? 'Editar Categoria' : 'Nova Categoria'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="nome" className="text-white">Nome *</Label>
-                <Input
-                  id="nome"
-                  value={formData.nome}
-                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  required
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="descricao" className="text-white">Descrição</Label>
-                <Textarea
-                  id="descricao"
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  rows={3}
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="cor" className="text-white">Cor</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="cor"
-                    type="color"
-                    value={formData.cor}
-                    onChange={(e) => setFormData({ ...formData, cor: e.target.value })}
-                    className="w-20 bg-gray-700 border-gray-600"
-                  />
-                  <Input
-                    value={formData.cor}
-                    onChange={(e) => setFormData({ ...formData, cor: e.target.value })}
-                    placeholder="#1a2332"
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-orange-400 focus:ring-orange-400"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button 
-                  type="submit" 
-                  disabled={loading}
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
-                >
-                  {editingId ? 'Atualizar' : 'Criar'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={cancelEdit}
-                  className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400"
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4">
-        {categories.map((category) => (
-          <Card key={category.id} className="bg-black/30 backdrop-blur-sm border border-white/20 hover:border-orange-400 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-6 h-6 rounded" 
-                    style={{ backgroundColor: category.cor }}
-                  />
+      <Card className="bg-white/5 backdrop-blur-sm border-white/10">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-white">Categorias ({categories.length})</CardTitle>
+            <Button 
+              onClick={() => setShowForm(true)} 
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+              style={{ fontFamily: 'Poppins, sans-serif' }}
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Nova Categoria
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {showForm && (
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20 mb-6">
+              <CardHeader>
+                <CardTitle className="text-white">
+                  {editingId ? 'Editar Categoria' : 'Nova Categoria'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <h3 className="font-semibold text-lg text-white">{category.nome}</h3>
-                    {category.descricao && (
-                      <p className="text-gray-300 text-sm mt-1">{category.descricao}</p>
-                    )}
+                    <Label htmlFor="nome" className="text-white font-medium">Nome da Categoria</Label>
+                    <Input
+                      id="nome"
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      placeholder="Digite o nome da categoria"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                    />
                   </div>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => editCategory(category)}
-                    className="h-8 w-8 p-0 text-white hover:bg-white/10 hover:text-orange-400"
-                  >
-                    <EditIcon className="w-4 h-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDeleteClick(category.id)}
-                        className="h-8 w-8 p-0 text-white hover:bg-red-500/20 hover:text-red-400"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-gray-800 border-gray-600">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="text-white">Tem certeza que deseja excluir esta categoria?</AlertDialogTitle>
-                        <AlertDialogDescription className="text-gray-300">
-                          Essa ação não pode ser desfeita. Isso excluirá permanentemente a categoria e seus dados relacionados.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600">Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
-                          onClick={confirmDeleteCategory}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
-      {categories.length === 0 && (
-        <div className="text-center py-8 text-gray-300">
-          Nenhuma categoria encontrada
-        </div>
-      )}
+                  <div>
+                    <Label htmlFor="descricao" className="text-white font-medium">Descrição</Label>
+                    <Textarea
+                      id="descricao"
+                      value={formData.descricao}
+                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                      placeholder="Descrição da categoria (opcional)"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="cor" className="text-white font-medium">Cor</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input
+                        id="cor"
+                        type="color"
+                        value={formData.cor}
+                        onChange={(e) => setFormData({ ...formData, cor: e.target.value })}
+                        className="w-16 h-10 bg-white/10 border-white/20"
+                      />
+                      <Input
+                        value={formData.cor}
+                        onChange={(e) => setFormData({ ...formData, cor: e.target.value })}
+                        placeholder="#1a2332"
+                        className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      type="submit" 
+                      disabled={loading}
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+                    >
+                      {editingId ? 'Atualizar' : 'Criar'} Categoria
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={cancelEdit}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {categories.length === 0 ? (
+            <div className="text-center py-8 text-gray-300">
+              Nenhuma categoria cadastrada
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-white/10 border-b border-white/20">
+                    <th className="p-2 text-left text-white font-semibold">Nome</th>
+                    <th className="p-2 text-left text-white font-semibold">Descrição</th>
+                    <th className="p-2 text-left text-white font-semibold">Cor</th>
+                    <th className="p-2 text-left text-white font-semibold">Data Criação</th>
+                    <th className="p-2 text-left text-white font-semibold">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.map(category => (
+                    <tr key={category.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
+                      <td className="p-2 text-white font-medium">{category.nome}</td>
+                      <td className="p-2 text-gray-300">{category.descricao || '—'}</td>
+                      <td className="p-2">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full border border-white/20" 
+                            style={{ backgroundColor: category.cor }}
+                          ></div>
+                          <span className="text-gray-300 font-mono text-xs">{category.cor}</span>
+                        </div>
+                      </td>
+                      <td className="p-2 text-gray-300">
+                        {new Date(category.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="p-2">
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
+                            title="Editar categoria"
+                            onClick={() => editCategory(category)}
+                          >
+                            <EditIcon className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:bg-red-500/10"
+                            title="Excluir categoria"
+                            onClick={() => handleDeleteClick(category.id)}
+                          >
+                            <TrashIcon className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
