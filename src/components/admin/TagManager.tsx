@@ -240,53 +240,87 @@ const TagManager = () => {
               Nenhuma tag cadastrada
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-white/10 border-b border-white/20">
-                    <th className="p-2 text-left text-white font-semibold">Nome</th>
-                    <th className="p-2 text-left text-white font-semibold">Data Criação</th>
-                    <th className="p-2 text-left text-white font-semibold">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tags.map(tag => (
-                    <tr key={tag.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
-                      <td className="p-2">
-                        <Badge variant="outline" className="border-orange-400 text-orange-400">
-                          {tag.nome}
-                        </Badge>
-                      </td>
-                      <td className="p-2 text-gray-300">
-                        {new Date(tag.created_at).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="p-2">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
-                            title="Editar tag"
-                            onClick={() => editTag(tag)}
-                          >
-                            <EditIcon className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500 hover:bg-red-500/10"
-                            title="Excluir tag"
-                            onClick={() => handleDeleteClick(tag.id)}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
+            <>
+              {/* Mobile: Cards */}
+              <div className="block sm:hidden space-y-3">
+                {tags.map(tag => (
+                  <div key={tag.id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <Badge variant="outline" className="border-orange-400 text-orange-400 text-xs px-2 py-0.5 font-semibold">{tag.nome}</Badge>
+                      <span className="text-xs text-gray-400">{new Date(tag.created_at).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    <div className="flex items-center justify-end gap-1 mt-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
+                        title="Editar tag"
+                        onClick={() => editTag(tag)}
+                      >
+                        <EditIcon className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500 hover:bg-red-500/10"
+                        title="Excluir tag"
+                        onClick={() => handleDeleteClick(tag.id)}
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: Tabela */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-white/10 border-b border-white/20">
+                      <th className="p-2 text-left text-white font-semibold">Nome</th>
+                      <th className="p-2 text-left text-white font-semibold">Data Criação</th>
+                      <th className="p-2 text-left text-white font-semibold">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {tags.map(tag => (
+                      <tr key={tag.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
+                        <td className="p-2">
+                          <Badge variant="outline" className="border-orange-400 text-orange-400">
+                            {tag.nome}
+                          </Badge>
+                        </td>
+                        <td className="p-2 text-gray-300">
+                          {new Date(tag.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="p-2">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
+                              title="Editar tag"
+                              onClick={() => editTag(tag)}
+                            >
+                              <EditIcon className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:bg-red-500/10"
+                              title="Excluir tag"
+                              onClick={() => handleDeleteClick(tag.id)}
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

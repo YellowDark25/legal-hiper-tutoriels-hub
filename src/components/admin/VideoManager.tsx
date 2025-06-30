@@ -439,35 +439,35 @@ const VideoManager = () => {
       <div className="space-y-4">
         {paginatedVideos.map((video) => (
           <Card key={video.id} className="bg-white/5 backdrop-blur-sm border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/10 transition-all duration-200">
-            <CardContent className="p-6">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="flex-shrink-0 flex justify-center items-center mb-2 sm:mb-0">
                   <img
                     src={getThumbnailUrl(video)}
                     alt={video.titulo}
-                    className="w-32 h-20 object-cover rounded"
+                    className="w-full max-w-[120px] h-20 sm:w-32 sm:h-20 object-cover rounded mx-auto"
                   />
                 </div>
                 
-                <div className="flex-1">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-lg text-white">{video.titulo}</h3>
-                    <div className="flex gap-2">
-                      <Badge variant={video.status === 'ativo' ? 'default' : 'secondary'} className="border-orange-400 text-orange-400">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2 sm:gap-0">
+                    <h3 className="font-semibold text-base sm:text-lg text-white truncate">{video.titulo}</h3>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge variant={video.status === 'ativo' ? 'default' : 'secondary'} className="border-orange-400 text-orange-400 text-xs px-2 py-0.5">
                         {video.status}
                       </Badge>
-                      <Badge variant="outline" className="border-orange-400 text-orange-400">
+                      <Badge variant="outline" className="border-orange-400 text-orange-400 text-xs px-2 py-0.5">
                         {video.sistema === 'pdvlegal' ? 'PDV Legal' : 'Hiper'}
                       </Badge>
                     </div>
                   </div>
                   
-                  <p className="text-gray-300 text-sm mb-3 line-clamp-2">
+                  <p className="text-gray-300 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">
                     {video.descricao}
                   </p>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-gray-400">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-400">
                       <span className="flex items-center gap-1">
                         <EyeIcon className="w-4 h-4" />
                         {video.visualizacoes} visualizações
@@ -476,19 +476,19 @@ const VideoManager = () => {
                       {video.categoria && (
                         <Badge 
                           style={{ backgroundColor: video.categoria.cor }}
-                          className="text-white"
+                          className="text-white text-xs px-2 py-0.5"
                         >
                           {video.categoria.nome}
                         </Badge>
                       )}
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2 flex-wrap">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => toggleStatus(video.id, video.status)}
-                        className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400"
+                        className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400 px-2 py-1 text-xs"
                       >
                         {video.status === 'ativo' ? 'Desativar' : 'Ativar'}
                       </Button>
@@ -496,7 +496,7 @@ const VideoManager = () => {
                         variant="outline" 
                         size="sm" 
                         onClick={() => openEditDialog(video)}
-                        className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400"
+                        className="border-gray-600 text-white hover:bg-white/10 hover:border-orange-400 px-2 py-1"
                       >
                         <EditIcon className="w-4 h-4" />
                       </Button>
@@ -506,7 +506,7 @@ const VideoManager = () => {
                             variant="outline" 
                             size="sm"
                             onClick={() => handleDeleteClick(video.id)}
-                            className="border-gray-600 text-white hover:bg-red-500/20 hover:border-red-400"
+                            className="border-gray-600 text-white hover:bg-red-500/20 hover:border-red-400 px-2 py-1"
                           >
                             <TrashIcon className="w-4 h-4" />
                           </Button>

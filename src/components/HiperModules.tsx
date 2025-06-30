@@ -256,126 +256,126 @@ const HiperModules: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white mb-4">
+      <div className="text-center mb-8 sm:mb-12">
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">
           <span className="bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent">
             Módulos Hiper
           </span>
         </h1>
-        <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+        <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto px-4 sm:px-0">
           Aprenda o sistema Hiper de forma organizada através dos nossos módulos especializados
         </p>
       </div>
 
       {/* Módulos */}
-      <div className="grid gap-8">
+      <div className="grid gap-6 sm:gap-8">
         {modules.map((module) => (
           <Card 
             key={module.id}
             className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 hover:border-orange-500/30 transition-all duration-300"
           >
             <CardHeader 
-              className="cursor-pointer"
+              className="cursor-pointer p-4 sm:p-6"
               onClick={() => toggleModule(module.id)}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className={`bg-gradient-to-r ${module.color} rounded-xl p-3 text-white shadow-lg`}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  <div className={`bg-gradient-to-r ${module.color} rounded-xl p-2 sm:p-3 text-white shadow-lg flex-shrink-0`}>
                     {module.icon}
                   </div>
-                  <div>
-                    <CardTitle className="text-2xl text-white">{module.name}</CardTitle>
-                    <p className="text-gray-400">{module.description}</p>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-xl sm:text-2xl text-white">{module.name}</CardTitle>
+                    <p className="text-sm sm:text-base text-gray-400">{module.description}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <Badge variant="outline" className="border-orange-400 text-orange-400">
+                <div className="flex flex-row sm:flex-col items-center sm:text-right gap-3 sm:gap-0">
+                  <div className="flex items-center space-x-2 sm:space-x-3 sm:mb-2">
+                    <Badge variant="outline" className="border-orange-400 text-orange-400 text-xs sm:text-sm">
                       {module.totalProgress.completed}/{module.totalProgress.total} vídeos
                     </Badge>
-                    <span className="text-orange-400 font-semibold">
+                    <span className="text-orange-400 font-semibold text-sm sm:text-base">
                       {Math.round(module.totalProgress.percentage)}%
                     </span>
                   </div>
                   <Progress 
                     value={module.totalProgress.percentage} 
-                    className="w-32 h-2"
+                    className="w-20 sm:w-32 h-2"
                   />
                 </div>
               </div>
             </CardHeader>
 
             {expandedModules.has(module.id) && (
-              <CardContent className="pt-0">
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <CardContent className="pt-0 p-4 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {module.subModules.map((subModule, index) => (
                     <Card 
                       key={index}
                       className="bg-slate-700/50 border border-slate-600/50 hover:border-orange-500/30 transition-all duration-300"
                     >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="text-orange-400">
+                      <CardHeader className="pb-3 p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                          <div className="flex items-center space-x-2 sm:space-x-3">
+                            <div className="text-orange-400 flex-shrink-0">
                               {subModule.icon}
                             </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-white">{subModule.name}</h3>
-                              <p className="text-sm text-gray-400">{subModule.progress.total} vídeos</p>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-base sm:text-lg font-semibold text-white">{subModule.name}</h3>
+                              <p className="text-xs sm:text-sm text-gray-400">{subModule.progress.total} vídeos</p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <CheckCircle className="w-4 h-4 text-green-400" />
-                              <span className="text-sm text-white">
+                          <div className="flex items-center justify-between sm:text-right">
+                            <div className="flex items-center space-x-2 sm:mb-1">
+                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-400" />
+                              <span className="text-xs sm:text-sm text-white">
                                 {subModule.progress.completed}/{subModule.progress.total}
                               </span>
                             </div>
                             <Progress 
                               value={subModule.progress.percentage} 
-                              className="w-20 h-1"
+                              className="w-16 sm:w-20 h-1 ml-2 sm:ml-0"
                             />
                           </div>
                         </div>
                       </CardHeader>
                       
                       {subModule.videos.length > 0 && (
-                        <CardContent className="pt-0">
-                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                        <CardContent className="pt-0 p-3 sm:p-4">
+                          <div className="space-y-2 sm:space-y-3 max-h-80 sm:max-h-96 overflow-y-auto">
                             {subModule.videos.map((video) => {
                               const assistido = watchedVideos.includes(video.id);
                               return (
                               <div 
                                 key={video.id}
-                                  className={`bg-slate-600/30 rounded-lg p-3 hover:bg-slate-600/50 transition-all duration-200 cursor-pointer relative ${assistido ? 'border-2 border-green-400 bg-green-900/20' : ''}`}
+                                  className={`bg-slate-600/30 rounded-lg p-2 sm:p-3 hover:bg-slate-600/50 transition-all duration-200 cursor-pointer relative touch-target ${assistido ? 'border-2 border-green-400 bg-green-900/20' : ''}`}
                                 onClick={() => handleVideoClick(video)}
                               >
-                                <div className="flex items-center space-x-3">
+                                <div className="flex items-center space-x-2 sm:space-x-3">
                                     {/* Ícone de assistido à esquerda */}
                                     {assistido && (
-                                      <div className="flex-shrink-0 mr-1">
-                                        <CheckCircle className="w-5 h-5 text-green-400" />
+                                      <div className="flex-shrink-0">
+                                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
                                       </div>
                                     )}
                                   <div className="flex-shrink-0">
                                     <img
                                         src={getThumbnailUrl(video)}
                                       alt={video.titulo}
-                                      className="w-16 h-10 object-cover rounded"
+                                      className="w-12 h-8 sm:w-16 sm:h-10 object-cover rounded"
                                     />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h4 className="text-sm font-medium text-white truncate">
+                                    <h4 className="text-xs sm:text-sm font-medium text-white truncate">
                                       {video.titulo}
                                     </h4>
                                     <p className="text-xs text-gray-400">
-                                      {video.duracao} • {video.visualizacoes} visualizações
+                                      {video.duracao} • {video.visualizacoes} views
                                     </p>
                                   </div>
                                   <div className="flex-shrink-0">
-                                    <PlayCircle className="w-5 h-5 text-orange-400" />
+                                    <PlayCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
                                   </div>
                                 </div>
                               </div>

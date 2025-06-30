@@ -189,14 +189,17 @@ const CategoryManager = () => {
     <div className="space-y-6">
       <Card className="bg-white/5 backdrop-blur-sm border-white/10">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white">Categorias ({categories.length})</CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-white flex items-end gap-1 text-lg sm:text-xl" style={{lineHeight:1.1}}>
+              Categorias
+              <span className="font-normal text-base sm:text-lg">({categories.length})</span>
+            </CardTitle>
             <Button 
               onClick={() => setShowForm(true)} 
-              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-3 py-1 sm:px-4 sm:py-2 text-sm sm:text-base flex items-center gap-1 sm:gap-2 rounded-lg"
               style={{ fontFamily: 'Poppins, sans-serif' }}
             >
-              <PlusIcon className="w-4 h-4 mr-2" />
+              <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
               Nova Categoria
             </Button>
           </div>
@@ -280,61 +283,105 @@ const CategoryManager = () => {
               Nenhuma categoria cadastrada
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-white/10 border-b border-white/20">
-                    <th className="p-2 text-left text-white font-semibold">Nome</th>
-                    <th className="p-2 text-left text-white font-semibold">Descrição</th>
-                    <th className="p-2 text-left text-white font-semibold">Cor</th>
-                    <th className="p-2 text-left text-white font-semibold">Data Criação</th>
-                    <th className="p-2 text-left text-white font-semibold">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.map(category => (
-                    <tr key={category.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
-                      <td className="p-2 text-white font-medium">{category.nome}</td>
-                      <td className="p-2 text-gray-300">{category.descricao || '—'}</td>
-                      <td className="p-2">
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-4 h-4 rounded-full border border-white/20" 
-                            style={{ backgroundColor: category.cor }}
-                          ></div>
-                          <span className="text-gray-300 font-mono text-xs">{category.cor}</span>
-                        </div>
-                      </td>
-                      <td className="p-2 text-gray-300">
-                        {new Date(category.created_at).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="p-2">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
-                            title="Editar categoria"
-                            onClick={() => editCategory(category)}
-                          >
-                            <EditIcon className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-red-500 hover:bg-red-500/10"
-                            title="Excluir categoria"
-                            onClick={() => handleDeleteClick(category.id)}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
+            <>
+              {/* Mobile: Cards */}
+              <div className="block sm:hidden space-y-3">
+                {categories.map(category => (
+                  <div key={category.id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-bold text-white text-base truncate" style={{fontFamily: 'Poppins, sans-serif'}}>{category.nome}</span>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <div 
+                          className="w-4 h-4 rounded-full border border-white/20" 
+                          style={{ backgroundColor: category.cor }}
+                        ></div>
+                        <span className="text-gray-300 font-mono text-xs truncate max-w-[56px]">{category.cor}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-300 mb-1 truncate">{category.descricao || '—'}</div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-gray-400">{new Date(category.created_at).toLocaleDateString('pt-BR')}</span>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
+                          title="Editar categoria"
+                          onClick={() => editCategory(category)}
+                        >
+                          <EditIcon className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 hover:bg-red-500/10"
+                          title="Excluir categoria"
+                          onClick={() => handleDeleteClick(category.id)}
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: Tabela */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-white/10 border-b border-white/20">
+                      <th className="p-2 text-left text-white font-semibold">Nome</th>
+                      <th className="p-2 text-left text-white font-semibold">Descrição</th>
+                      <th className="p-2 text-left text-white font-semibold">Cor</th>
+                      <th className="p-2 text-left text-white font-semibold">Data Criação</th>
+                      <th className="p-2 text-left text-white font-semibold">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {categories.map(category => (
+                      <tr key={category.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
+                        <td className="p-2 text-white font-medium">{category.nome}</td>
+                        <td className="p-2 text-gray-300">{category.descricao || '—'}</td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-4 h-4 rounded-full border border-white/20" 
+                              style={{ backgroundColor: category.cor }}
+                            ></div>
+                            <span className="text-gray-300 font-mono text-xs">{category.cor}</span>
+                          </div>
+                        </td>
+                        <td className="p-2 text-gray-300">
+                          {new Date(category.created_at).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="p-2">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-gray-300 hover:bg-white/10 hover:text-orange-400"
+                              title="Editar categoria"
+                              onClick={() => editCategory(category)}
+                            >
+                              <EditIcon className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:bg-red-500/10"
+                              title="Excluir categoria"
+                              onClick={() => handleDeleteClick(category.id)}
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

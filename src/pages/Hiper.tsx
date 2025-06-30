@@ -34,7 +34,7 @@ const Hiper: React.FC = () => {
       <main className="flex-1 pt-16">
         {/* Hero Section */}
         <section 
-          className="relative py-16 text-white overflow-hidden"
+          className="relative py-12 sm:py-16 text-white overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #7C3AED 0%, #8B5CF6 50%, #A78BFA 100%)'
           }}
@@ -49,12 +49,12 @@ const Hiper: React.FC = () => {
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
               {/* Logo e Título */}
-              <div className="flex flex-col md:flex-row items-center justify-center mb-8">
-                <div className="bg-white/10 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border border-white/20 mb-4 md:mb-0 md:mr-6 flex items-center justify-center min-w-[80px] min-h-[80px]">
+              <div className="flex flex-col md:flex-row items-center justify-center mb-6 sm:mb-8">
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/20 mb-4 md:mb-0 md:mr-6 flex items-center justify-center min-w-[60px] min-h-[60px] sm:min-w-[80px] sm:min-h-[80px]">
                   <img 
                     src="/hiper-logo-D4juEd9-.png" 
                     alt="Hiper Logo" 
-                    className="w-12 h-12 object-contain animate-bounce-slow"
+                    className="w-8 h-8 sm:w-12 sm:h-12 object-contain animate-bounce-slow"
                     onError={(e) => {
                       console.error('Erro ao carregar logo Hiper:', e);
                       e.currentTarget.style.display = 'none';
@@ -66,7 +66,7 @@ const Hiper: React.FC = () => {
                   />
                   {/* Fallback Icon */}
                   <svg 
-                    className="fallback-icon w-12 h-12 text-white hidden" 
+                    className="fallback-icon w-8 h-8 sm:w-12 sm:h-12 text-white hidden" 
                     fill="currentColor" 
                     viewBox="0 0 20 20"
                   >
@@ -74,17 +74,17 @@ const Hiper: React.FC = () => {
                   </svg>
                 </div>
                 <div>
-                  <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                  <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold mb-3 sm:mb-4 bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
                     Hiper
                   </h1>
-                  <p className="text-xl md:text-2xl text-purple-100 font-light">
+                  <p className="text-lg sm:text-xl md:text-2xl text-purple-100 font-light">
                     Sistema Completo de Gestão
                   </p>
                 </div>
               </div>
               
               {/* Descrição */}
-              <p className="text-lg md:text-xl text-purple-100 max-w-3xl mx-auto leading-relaxed">
+              <p className="text-base sm:text-lg md:text-xl text-purple-100 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
                 Domine todas as funcionalidades do sistema Hiper com nossos tutoriais organizados por módulos especializados. 
                 Aprenda desde configurações básicas até recursos avançados de gestão empresarial.
               </p>
@@ -93,7 +93,7 @@ const Hiper: React.FC = () => {
         </section>
 
         {/* Módulos do Hiper */}
-        <section className="py-12 bg-slate-900">
+        <section className="py-8 sm:py-12 bg-slate-900">
           <div className="container mx-auto px-4">
             <HiperModules />
           </div>

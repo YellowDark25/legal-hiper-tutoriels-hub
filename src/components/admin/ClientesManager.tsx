@@ -381,61 +381,100 @@ const ClientesManager = () => {
               {search ? 'Nenhum cliente encontrado para a busca' : 'Nenhum cliente cadastrado'}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-white/10 border-b border-white/20">
-                    <th className="p-2 text-left text-white font-semibold">CNPJ</th>
-                    <th className="p-2 text-left text-white font-semibold">Nome Fantasia</th>
-                    <th className="p-2 text-left text-white font-semibold">Sistema</th>
-                    <th className="p-2 text-left text-white font-semibold">E-mail</th>
-                    <th className="p-2 text-left text-white font-semibold">Cidade</th>
-                    <th className="p-2 text-left text-white font-semibold">Estado</th>
-                    <th className="p-2 text-left text-white font-semibold">Data Cadastro</th>
-                    <th className="p-2 text-left text-white font-semibold">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map(cliente => (
-                    <tr key={cliente.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
-                      <td className="p-2 font-mono text-gray-300">{cliente.cnpj || '—'}</td>
-                      <td className="p-2 text-white">{cliente.nome_fantasia || '—'}</td>
-                      <td className="p-2">
-                        {cliente.sistema ? (
-                          <Badge variant="outline" className="border-orange-400 text-orange-400">
-                            {cliente.sistema === 'pdvlegal' ? 'PDV Legal' : 
-                             cliente.sistema === 'hiper' ? 'Hiper' : 
-                             cliente.sistema}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="p-2 text-gray-300">{cliente.email || '—'}</td>
-                      <td className="p-2 text-gray-300">{cliente.cidade || '—'}</td>
-                      <td className="p-2 text-gray-300">{cliente.estado || '—'}</td>
-                      <td className="p-2 text-gray-300">
-                        {cliente.created_at ? 
-                          new Date(cliente.created_at).toLocaleDateString('pt-BR') : 
-                          '—'
-                        }
-                      </td>
-                      <td className="p-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-red-500 hover:bg-red-500/10"
-                          title="Excluir cliente"
-                          onClick={() => setClienteParaExcluir(cliente)}
-                        >
-                          <Trash2Icon className="w-5 h-5" />
-                        </Button>
-                      </td>
+            <>
+              {/* Mobile: Cards */}
+              <div className="block sm:hidden space-y-3">
+                {filtered.map(cliente => (
+                  <div key={cliente.id} className="bg-white/5 border border-white/10 rounded-xl p-3 flex flex-col gap-2 shadow-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs text-gray-300 truncate">{cliente.cnpj || '—'}</span>
+                      {cliente.sistema ? (
+                        <Badge variant="outline" className="border-orange-400 text-orange-400 text-xs px-2 py-0.5">
+                          {cliente.sistema === 'pdvlegal' ? 'PDV Legal' : cliente.sistema === 'hiper' ? 'Hiper' : cliente.sistema}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
+                    </div>
+                    <div className="font-semibold text-white text-sm truncate">{cliente.nome_fantasia || '—'}</div>
+                    <div className="text-xs text-gray-300 truncate">{cliente.email || '—'}</div>
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <span>{cliente.cidade || '—'}</span>
+                      <span className="mx-1">/</span>
+                      <span>{cliente.estado || '—'}</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-xs text-gray-400">{cliente.created_at ? new Date(cliente.created_at).toLocaleDateString('pt-BR') : '—'}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500 hover:bg-red-500/10"
+                        title="Excluir cliente"
+                        onClick={() => setClienteParaExcluir(cliente)}
+                      >
+                        <Trash2Icon className="w-5 h-5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop: Tabela */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-white/10 border-b border-white/20">
+                      <th className="p-2 text-left text-white font-semibold">CNPJ</th>
+                      <th className="p-2 text-left text-white font-semibold">Nome Fantasia</th>
+                      <th className="p-2 text-left text-white font-semibold">Sistema</th>
+                      <th className="p-2 text-left text-white font-semibold">E-mail</th>
+                      <th className="p-2 text-left text-white font-semibold">Cidade</th>
+                      <th className="p-2 text-left text-white font-semibold">Estado</th>
+                      <th className="p-2 text-left text-white font-semibold">Data Cadastro</th>
+                      <th className="p-2 text-left text-white font-semibold">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filtered.map(cliente => (
+                      <tr key={cliente.id} className="border-b border-white/10 hover:border-l-4 hover:border-l-orange-400 hover:bg-white/5 transition-all duration-200">
+                        <td className="p-2 font-mono text-gray-300">{cliente.cnpj || '—'}</td>
+                        <td className="p-2 text-white">{cliente.nome_fantasia || '—'}</td>
+                        <td className="p-2">
+                          {cliente.sistema ? (
+                            <Badge variant="outline" className="border-orange-400 text-orange-400">
+                              {cliente.sistema === 'pdvlegal' ? 'PDV Legal' : 
+                               cliente.sistema === 'hiper' ? 'Hiper' : 
+                               cliente.sistema}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="p-2 text-gray-300">{cliente.email || '—'}</td>
+                        <td className="p-2 text-gray-300">{cliente.cidade || '—'}</td>
+                        <td className="p-2 text-gray-300">{cliente.estado || '—'}</td>
+                        <td className="p-2 text-gray-300">
+                          {cliente.created_at ? 
+                            new Date(cliente.created_at).toLocaleDateString('pt-BR') : 
+                            '—'
+                          }
+                        </td>
+                        <td className="p-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:bg-red-500/10"
+                            title="Excluir cliente"
+                            onClick={() => setClienteParaExcluir(cliente)}
+                          >
+                            <Trash2Icon className="w-5 h-5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

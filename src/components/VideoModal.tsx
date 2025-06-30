@@ -428,14 +428,14 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
 
         {/* Content Container */}
         <div className={`absolute inset-0 flex items-center justify-center overflow-y-auto ${
-          isPlayerFullscreen ? 'p-0' : 'p-2 md:p-4 pt-16'
+          isPlayerFullscreen ? 'p-0' : 'p-0.5 sm:p-2 md:p-4 pt-16'
         }`}>
           <div className={`relative shadow-2xl w-full transition-all duration-500 ease-out my-auto
             ${isPlayerFullscreen 
-              ? 'fixed inset-0 bg-black/95 z-50 rounded-none h-full overflow-hidden' 
+              ? 'fixed inset-0 bg-black/95 z-50 rounded-none h-[100vh] w-[100vw] max-w-none max-h-none overflow-hidden' 
               : 'bg-gray-900/40 backdrop-blur-xl border border-gray-700/30'
             } ${!isPlayerFullscreen && (isMobile
-                ? 'max-w-[98vw] max-h-[88vh] rounded-2xl overflow-y-auto'
+                ? 'max-w-[100vw] max-h-[92vh] rounded-lg overflow-y-auto'
                 : isFullscreen 
                   ? 'max-w-[95vw] max-h-[85vh] rounded-3xl overflow-y-auto' 
                   : 'max-w-7xl max-h-[82vh] rounded-3xl overflow-y-auto')
@@ -589,11 +589,11 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
                 {!playing && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Button
-                      size={isMobile ? "default" : "lg"}
+                      size={isMobile ? "sm" : "default"}
                       onClick={handlePlayPause}
-                      className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 backdrop-blur-sm border-2 border-white/30 text-white rounded-full p-4 md:p-8 transition-all duration-300 hover:scale-110 shadow-2xl touch-target group"
+                      className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 backdrop-blur-sm border-2 border-white/30 text-white rounded-full p-2 sm:p-4 md:p-8 transition-all duration-300 hover:scale-110 shadow-2xl touch-target group"
                     >
-                      <Play className="w-6 h-6 md:w-10 md:h-10 ml-1 group-hover:scale-110 transition-transform duration-200" />
+                      <Play className="w-5 h-5 sm:w-6 sm:h-6 md:w-10 md:h-10 ml-1 group-hover:scale-110 transition-transform duration-200" />
                     </Button>
                   </div>
                 )}
@@ -718,13 +718,13 @@ const VideoModal: React.FC<VideoModalProps> = ({ video, isOpen, onClose }) => {
 
           {/* Video Info and Comments Section - Modernizado */}
           {!isPlayerFullscreen && (
-            <div className={`${isMobile ? 'w-full' : 'lg:w-1/3'} ${isMobile ? '' : 'border-l'} border-gray-700/40 bg-gradient-to-b from-gray-800/30 to-gray-900/40 backdrop-blur-sm flex flex-col max-h-[70vh] rounded-2xl`}>
-              <div className="p-4 md:p-6 flex-1 overflow-y-auto">
+            <div className={`${isMobile ? 'w-full' : 'lg:w-1/3'} ${isMobile ? '' : 'border-l'} border-gray-700/40 bg-gradient-to-b from-gray-800/30 to-gray-900/40 backdrop-blur-sm flex flex-col max-h-[70vh] rounded-xl sm:rounded-2xl`}>
+              <div className="p-3 sm:p-4 md:p-6 flex-1 overflow-y-auto">
                 {/* Video Info - Modernizado */}
-                <div className="mb-6">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-4">
+                <div className="mb-4 sm:mb-6">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 sm:gap-3 md:gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg md:text-xl font-bold text-white mb-3 leading-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                      <h3 className="text-base sm:text-lg md:text-xl font-bold text-white mb-2 sm:mb-3 leading-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                         {video.titulo}
                       </h3>
                       
